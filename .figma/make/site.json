@@ -1,0 +1,10 @@
+{
+  "description": "Discover and purchase unique 3D printed products or download custom 3D models while managing orders seamlessly in a modern, user-friendly interface.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

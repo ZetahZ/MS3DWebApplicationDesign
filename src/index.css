@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+html, body, #root {
+  height: 100%;
+}
+
+@theme inline {
+  --color-background: #080b0f;
+  --color-foreground: #e8edf2;
+  --color-card: #0f1520;
+  --color-card-foreground: #d4dce8;
+  --color-primary: #00c8ff;
+  --color-primary-foreground: #080b0f;
+  --color-secondary: #1a2535;
+  --color-secondary-foreground: #a0b0c8;
+  --color-muted: #111928;
+  --color-muted-foreground: #5a7090;
+  --color-accent: #ff6b2b;
+  --color-accent-foreground: #080b0f;
+  --color-border: rgba(0, 200, 255, 0.1);
+  --color-ring: #00c8ff;
+  --radius: 4px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #080b0f;
+  color: #e8edf2;
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.font-mono-data {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0f1520; }
+::-webkit-scrollbar-thumb { background: rgba(0, 200, 255, 0.3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 200, 255, 0.6); }
+
+/* Scanline overlay for tech feel */
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Neon glow effect */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.15), 0 0 40px rgba(0, 200, 255, 0.05);
+}
+.glow-accent {
+  box-shadow: 0 0 20px rgba(255, 107, 43, 0.2), 0 0 40px rgba(255, 107, 43, 0.05);
+}
+.text-glow {
+  text-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
+}
+
+/* Grid lines background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 200, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Kanban card drag handle */
+.kanban-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kanban-card:hover {
+  transform: translateY(-1px);
+}
+
+/* Product card hover */
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Underline decoration */
+.section-title::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 2px;
+  background: linear-gradient(90deg, #00c8ff, transparent);
+  margin-top: 8px;
+}
+
+/* Status badge */
+.status-pending { background: rgba(255, 180, 0, 0.15); color: #ffb400; border: 1px solid rgba(255, 180, 0, 0.3); }
+.status-printing { background: rgba(0, 200, 255, 0.15); color: #00c8ff; border: 1px solid rgba(0, 200, 255, 0.3); }
+.status-done { background: rgba(0, 220, 100, 0.15); color: #00dc64; border: 1px solid rgba(0, 220, 100, 0.3); }
