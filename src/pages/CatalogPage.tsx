@@ -1,15 +1,17 @@
 import type { View, Product } from "../types";
 import { CATEGORIES } from "../types";
-import { PRODUCTS } from "../data";
 import ProductCard from "../components/ProductCard";
 
 interface Props {
   navigate: (v: View) => void;
   onAddToCart: (p: Product) => void;
+  products?: any[]; // Recibe los productos de la base de datos
+  loading?: boolean; // Estado de carga opcional
 }
 
-export default function CatalogPage({ navigate, onAddToCart }: Props) {
-  const featured = PRODUCTS.slice(0, 6);
+export default function CatalogPage({ navigate, onAddToCart, products = [], loading = false }: Props) {
+  // Tomamos los primeros 6 productos de la base de datos para los destacados
+  const featured = products.slice(0, 6);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
@@ -55,21 +57,28 @@ export default function CatalogPage({ navigate, onAddToCart }: Props) {
         <div className="font-mono-data text-[#00c8ff] text-xs tracking-widest uppercase mb-2">// Destacados</div>
         <h2 className="font-display font-700 text-2xl sm:text-3xl text-white section-title">Lo más pedido</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
-        {featured.map((p) => (
-          <ProductCard
-            key={p.id}
-            product={p}
-            onAddToCart={() => onAddToCart(p)}
-            onClick={() => navigate({ page: "product", id: p.id })}
-          />
-        ))}
-      </div>
+
+      {loading ? (
+        <p className="text-[#00c8ff] font-mono-data text-sm py-10">Cargando productos desde la base de datos...</p>
+      ) : featured.length === 0 ? (
+        <p className="text-[#5a7090] font-mono-data text-sm py-10">No hay productos cargados en la base de datos todavía. ¡Agrega algunos desde la API o Swagger!</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
+          {featured.map((p) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onAddToCart={() => onAddToCart(p)}
+              onClick={() => navigate({ page: "product", id: p.id })}
+            />
+          ))}
+        </div>
+      )}
 
       {/* CTA to categories */}
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {CATEGORIES.slice(0, 3).map((cat) => {
-          const catProducts = PRODUCTS.filter((p) => p.category === cat.slug);
+          const catProducts = products.filter((p) => p.category === cat.slug);
           return (
             <button
               key={cat.slug}

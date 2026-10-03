@@ -1,24 +1,20 @@
-from app.models.categoria import Categoria
-from app.models.producto import Producto
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-categorias: list[Categoria] = [
-    Categoria(id=1, nombre="Electrónica"),
-    Categoria(id=2, nombre="Hogar"),
-    Categoria(id=3, nombre="Librería")
-]
+# Reemplaza con tus credenciales reales de PostgreSQL
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql://postgres:6363@localhost:5432/ms3d"
+)
 
-productos: list[Producto] = [
-    Producto(id=1, nombre="Auriculares Bluetooth", precio=25000.0, stock=10, categoria_id=1, activo=True),
-    Producto(id=2, nombre="Mouse Inalámbrico", precio=12000.0, stock=15, categoria_id=1, activo=True),
-    Producto(id=3, nombre="Lámpara de Escritorio", precio=18000.0, stock=8, categoria_id=2, activo=True),
-    Producto(id=4, nombre="Organizador de Cajas", precio=9500.0, stock=20, categoria_id=2, activo=True),
-    Producto(id=5, nombre="Cuaderno A4 rayado", precio=3500.0, stock=30, categoria_id=3, activo=True),
-    Producto(id=6, nombre="Set de Bolígrafos", precio=2000.0, stock=25, categoria_id=3, activo=True)
-]
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-_current_id = len(productos)
-
-def bump_producto_id() -> int:
-    global _current_id
-    _current_id += 1
-    return _current_id
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

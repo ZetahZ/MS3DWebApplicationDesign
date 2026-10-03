@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { View, CartItem, Order, OrderStatus } from "./types";
 import { INITIAL_ORDERS } from "./data";
+import { obtenerProductos } from "./services/productService";
 
 import Header from "./components/Header";
 import CartModal from "./components/CartModal";
@@ -45,6 +46,41 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [nextOrderId, setNextOrderId] = useState(100);
 
+  // Estado para los productos que vienen de la Base de Datos (FastAPI)
+  const [productosDB, setProductosDB] = useState<any[]>([]);
+  const [cargandoDB, setCargandoDB] = useState(true);
+
+  // Cargar productos de la API al iniciar la aplicación y mapearlos correctamente
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        const data = await obtenerProductos();
+        
+        // Verificamos que sea un array y filtramos registros vacíos o sin nombre/precio
+        if (Array.isArray(data)) {
+          const productosMapeados = data
+            .filter((p: any) => p && (p.nombre || p.name)) // Ignora registros vacíos
+            .map((p: any) => ({
+              id: p.id,
+              name: p.nombre || p.name,
+              price: p.precio ?? p.price ?? 0,
+              image: p.imagen || p.image || "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=600&h=400&fit=crop&auto=format",
+              material: p.material || "PLA",
+              tag: p.tag || "3D",
+              tagColor: p.tagColor || "#00c8ff",
+              printTime: p.printTime || p.tiempo_impresion || "2h",
+            }));
+          setProductosDB(productosMapeados);
+        }
+      } catch (error) {
+        console.error("Error al obtener productos de la base de datos:", error);
+      } finally {
+        setCargandoDB(false);
+      }
+    }
+    cargarDatos();
+  }, []);
+
   const navigate = (v: View) => {
     setView(v);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -85,7 +121,12 @@ export default function App() {
 
       <main className="flex-1">
         {view.page === "catalog" && (
-          <CatalogPage navigate={navigate} onAddToCart={(p) => addToCart({ id: p.id, name: p.name, price: p.price, qty: 1, type: "product", image: p.image })} />
+          <CatalogPage 
+            navigate={navigate} 
+            products={productosDB} 
+            loading={cargandoDB}    
+            onAddToCart={(p) => addToCart({ id: p.id, name: p.name, price: p.price, qty: 1, type: "product", image: p.image })} 
+          />
         )}
         {view.page === "category" && (
           <CategoryPage slug={view.slug} navigate={navigate} onAddToCart={(p) => addToCart({ id: p.id, name: p.name, price: p.price, qty: 1, type: "product", image: p.image })} />

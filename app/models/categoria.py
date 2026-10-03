@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from sqlalchemy import Column, Integer, String
+from app.core.db import Base
 
-@dataclass
-class Categoria:
-    id: int
-    nombre: str
+class Categoria(Base):
+    __tablename__ = "categorias"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    nombre = Column(String, unique=True, index=True, nullable=False)

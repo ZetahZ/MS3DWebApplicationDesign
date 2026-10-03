@@ -24,33 +24,47 @@ export default function ProductCard({ product, onAddToCart, onClick }: Props) {
     >
       <div className="relative overflow-hidden h-48 bg-[#111928]">
         <img
-          src={product.image}
-          alt={product.name}
+          src={product?.image || "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=600&h=400&fit=crop&auto=format"}
+          alt={product?.name || "Producto 3D"}
           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-400"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0f1520] via-transparent to-transparent" />
-        <span
-          className="absolute top-3 left-3 font-mono-data text-[10px] px-2 py-0.5 rounded font-500 tracking-wider"
-          style={{ background: `${product.tagColor}22`, color: product.tagColor, border: `1px solid ${product.tagColor}44` }}
-        >
-          {product.tag}
-        </span>
+        {product?.tag && (
+          <span
+            className="absolute top-3 left-3 font-mono-data text-[10px] px-2 py-0.5 rounded font-500 tracking-wider"
+            style={{ 
+              background: `${product?.tagColor || '#00c8ff'}22`, 
+              color: product?.tagColor || '#00c8ff', 
+              border: `1px solid ${product?.tagColor || '#00c8ff'}44` 
+            }}
+          >
+            {product.tag}
+          </span>
+        )}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <span className="font-mono-data text-[9px] bg-[#080b0f]/80 text-[#5a7090] px-2 py-0.5 rounded">Ver detalle →</span>
         </div>
       </div>
       <div className="p-4">
-        <h3 className="font-display font-700 text-base text-white mb-3 leading-tight">{product.name}</h3>
+        <h3 className="font-display font-700 text-base text-white mb-3 leading-tight">
+          {product?.name || "Sin nombre"}
+        </h3>
         <div className="flex flex-wrap gap-2 mb-3">
-          <span className="font-mono-data text-[10px] text-[#5a7090] px-2 py-1 bg-[#111928] rounded flex items-center gap-1">
-            <span className="text-[#00c8ff]">▲</span> {product.material}
-          </span>
-          <span className="font-mono-data text-[10px] text-[#5a7090] px-2 py-1 bg-[#111928] rounded">⏱ {product.printTime}</span>
+          {product?.material && (
+            <span className="font-mono-data text-[10px] text-[#5a7090] px-2 py-1 bg-[#111928] rounded flex items-center gap-1">
+              <span className="text-[#00c8ff]">▲</span> {product.material}
+            </span>
+          )}
+          {product?.printTime && (
+            <span className="font-mono-data text-[10px] text-[#5a7090] px-2 py-1 bg-[#111928] rounded">
+              ⏱ {product.printTime}
+            </span>
+          )}
         </div>
         <div className="flex items-center justify-between">
           <span className="font-display font-700 text-xl text-white">
             <span className="text-[#5a7090] text-sm font-400 font-mono-data">$</span>
-            {product.price.toLocaleString("es-AR")}
+            {Number(product?.price ?? 0).toLocaleString("es-AR")}
           </span>
           <button
             onClick={handleAdd}
