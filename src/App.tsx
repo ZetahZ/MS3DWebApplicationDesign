@@ -5,6 +5,7 @@ import { obtenerProductos } from "./services/productService";
 
 import Header from "./components/Header";
 import CartModal from "./components/CartModal";
+import { LoginModal } from "./components/LoginModal";
 
 import CatalogPage from "./pages/CatalogPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -45,6 +46,7 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [nextOrderId, setNextOrderId] = useState(100);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   // Estado para los productos que vienen de la Base de Datos (FastAPI)
   const [productosDB, setProductosDB] = useState<any[]>([]);
@@ -56,10 +58,9 @@ export default function App() {
       try {
         const data = await obtenerProductos();
         
-        // Verificamos que sea un array y filtramos registros vacíos o sin nombre/precio
         if (Array.isArray(data)) {
           const productosMapeados = data
-            .filter((p: any) => p && (p.nombre || p.name)) // Ignora registros vacíos
+            .filter((p: any) => p && (p.nombre || p.name))
             .map((p: any) => ({
               id: p.id,
               name: p.nombre || p.name,
@@ -117,7 +118,14 @@ export default function App() {
 
   return (
     <div className="min-h-full grid-bg relative flex flex-col">
-      <Header view={view} navigate={navigate} cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
+      {/* Header conectado con el manejador de Login */}
+      <Header 
+        view={view} 
+        navigate={navigate} 
+        cartCount={cartCount} 
+        onCartOpen={() => setCartOpen(true)}
+        onLoginOpen={() => setIsLoginOpen(true)}
+      />
 
       <main className="flex-1">
         {view.page === "catalog" && (
@@ -192,6 +200,12 @@ export default function App() {
           navigate={navigate}
         />
       )}
+
+      {/* Modal de Inicio de Sesión / Registro */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+      />
     </div>
   );
 }

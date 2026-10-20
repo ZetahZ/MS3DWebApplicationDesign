@@ -34,9 +34,10 @@ interface HeaderProps {
   navigate: (v: View) => void;
   cartCount: number;
   onCartOpen: () => void;
+  onLoginOpen: () => void;
 }
 
-export default function Header({ view, navigate, cartCount, onCartOpen }: HeaderProps) {
+export default function Header({ view, navigate, cartCount, onCartOpen, onLoginOpen }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
@@ -133,6 +134,14 @@ export default function Header({ view, navigate, cartCount, onCartOpen }: Header
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Botón Iniciar Sesión */}
+          <button
+            onClick={onLoginOpen}
+            className="font-display font-600 text-xs tracking-wider uppercase px-3 py-2 rounded border border-[rgba(0,200,255,0.3)] text-[#00c8ff] hover:bg-[rgba(0,200,255,0.1)] hover:border-[rgba(0,200,255,0.6)] transition-all duration-200"
+          >
+            Iniciar Sesión
+          </button>
+
           {/* Cart */}
           <button
             onClick={onCartOpen}
@@ -206,6 +215,13 @@ export default function Header({ view, navigate, cartCount, onCartOpen }: Header
               {item.label}
             </button>
           ))}
+          {/* Botón en menú móvil */}
+          <button
+            onClick={() => { onLoginOpen(); setMobileOpen(false); }}
+            className="font-display font-600 text-sm tracking-widest uppercase px-4 py-3 rounded text-left text-[#00c8ff] hover:bg-[rgba(0,200,255,0.08)] transition-colors mt-2 border-t border-[rgba(0,200,255,0.1)]"
+          >
+            Iniciar Sesión
+          </button>
         </div>
       )}
     </header>
