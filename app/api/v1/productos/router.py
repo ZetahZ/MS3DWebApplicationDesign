@@ -10,6 +10,11 @@ router = APIRouter(prefix="/productos", tags=["Productos"])
 def listar_productos(db: Session = Depends(get_db)):
     return ProductoRepository.get_all(db)
 
+# --- NUEVO ENDPOINT: Filtrar productos por categoría ---
+@router.get("/categoria/{categoria_id}", response_model=list[ProductoResponse])
+def listar_productos_por_categoria(categoria_id: int, db: Session = Depends(get_db)):
+    return ProductoRepository.get_by_categoria(db, categoria_id)
+
 @router.get("/{producto_id}", response_model=ProductoResponse)
 def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
     producto = ProductoRepository.get_by_id(db, producto_id)

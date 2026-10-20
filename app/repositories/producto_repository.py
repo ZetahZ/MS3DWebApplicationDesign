@@ -13,6 +13,10 @@ class ProductoRepository:
         return db.query(Producto).filter(Producto.id == producto_id).first()
 
     @staticmethod
+    def get_by_categoria(db: Session, categoria_id: int):
+        return db.query(Producto).filter(Producto.categoria_id == categoria_id).all()
+
+    @staticmethod
     def create(db: Session, data: ProductoCreate):
         nuevo_producto = Producto(**data.model_dump())
         db.add(nuevo_producto)
