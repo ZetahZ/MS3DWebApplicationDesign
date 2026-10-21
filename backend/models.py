@@ -8,3 +8,11 @@ class ProductModel(Base):
     name = Column(String, index=True)
     description = Column(String)
     price = Column(Float)
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
