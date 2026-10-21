@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { View, CartItem, Order, OrderStatus } from "./types";
 import { INITIAL_ORDERS } from "./data";
 import { obtenerProductos } from "./services/productService";
+import AdminDashboard from "./components/AdminDashboard"; 
 
 import Header from "./components/Header";
 import CartModal from "./components/CartModal";
@@ -167,6 +168,10 @@ export default function App() {
         {view.page === "contact" && (
           <ContactPage navigate={navigate} />
         )}
+        {view.page === "admin" && (
+          <AdminDashboard />
+        )}
+      
       </main>
 
       <footer className="border-t border-[rgba(0,200,255,0.06)] mt-10 py-8 px-4">

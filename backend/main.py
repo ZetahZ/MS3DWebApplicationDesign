@@ -5,10 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine, get_db
 
+# 1. Importar el router de admin desde la carpeta routers
+from routers import admin
+
 # Crea las tablas en la base de datos automáticamente si no existen
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MS 3D API", version="1.0")
+
+# 2. Registrar el router en la aplicación
+app.include_router(admin.router)
 
 # Configuración de CORS para permitir peticiones desde el frontend (React)
 app.add_middleware(
@@ -43,7 +49,6 @@ def get_products(db: Session = Depends(get_db)):
 # --- ENDPOINT DE REGISTRO ---
 @app.post("/api/v1/auth/register")
 def register_user(user_data: RegisterSchema, db: Session = Depends(get_db)):
-    # Verificar si el usuario ya está registrado
     existing_user = db.query(models.Usuario).filter(models.Usuario.email == user_data.email).first()
     if existing_user:
         raise HTTPException(
@@ -51,7 +56,6 @@ def register_user(user_data: RegisterSchema, db: Session = Depends(get_db)):
             detail="El correo electrónico ya está registrado."
         )
 
-    # Crear el nuevo usuario en PostgreSQL
     nuevo_usuario = models.Usuario(
         nombre=user_data.nombre,
         email=user_data.email,
@@ -75,10 +79,8 @@ def register_user(user_data: RegisterSchema, db: Session = Depends(get_db)):
 # --- ENDPOINT DE LOGIN ---
 @app.post("/api/v1/auth/login")
 def login_user(credentials: LoginSchema, db: Session = Depends(get_db)):
-    # Buscar el usuario en la base de datos por email
     user = db.query(models.Usuario).filter(models.Usuario.email == credentials.email).first()
 
-    # Validar existencia y contraseña
     if not user or user.password != credentials.password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

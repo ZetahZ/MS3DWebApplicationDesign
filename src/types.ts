@@ -17,7 +17,8 @@ export type View =
   | { page: "new-order" }
   | { page: "order-detail"; id: number }
   | { page: "about" }
-  | { page: "contact" };
+  | { page: "contact" }
+  | { page: "admin" };
 
 export interface Product {
   id: number;
