@@ -6,6 +6,7 @@ import { obtenerProductos } from "./services/productService";
 import Header from "./components/Header";
 import CartModal from "./components/CartModal";
 import { LoginModal } from "./components/LoginModal";
+import WhatsAppButton from "./components/WhatsAppButton";
 
 import CatalogPage from "./pages/CatalogPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -206,6 +207,10 @@ export default function App() {
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
       />
+
+      {/* Botón flotante de WhatsApp — visible en todas las páginas */}
+      <WhatsAppButton />
+    
     </div>
   );
 }
