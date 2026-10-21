@@ -74,6 +74,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
   const isCreatorActive = view.page === "creator" || view.page === "new-order" || view.page === "order-detail";
   const isAboutActive = view.page === "about";
   const isContactActive = view.page === "contact";
+  const isAdminActive = view.page === "admin";
 
   const navBtn = (active: boolean, label: string, onClick: () => void) => (
     <button
@@ -145,6 +146,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
           {navBtn(isCreatorActive, "Panel Creador", () => navigate({ page: "creator" }))}
           {navBtn(isAboutActive, "Nosotros", () => navigate({ page: "about" }))}
           {navBtn(isContactActive, "Contacto", () => navigate({ page: "contact" }))}
+          {navBtn(isAdminActive, "Admin", () => navigate({ page: "admin" }))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -231,6 +233,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
             { label: "Panel Creador", v: { page: "creator" } as View },
             { label: "Nosotros", v: { page: "about" } as View },
             { label: "Contacto", v: { page: "contact" } as View },
+            { label: "Admin", v: { page: "admin" } as View },
           ].map((item) => (
             <button
               key={item.label}
