@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { View, Product } from "../types";
 import { CATEGORIES } from "../types";
 import ProductCard from "../components/ProductCard";
@@ -9,9 +10,35 @@ interface Props {
   loading?: boolean; // Estado de carga opcional
 }
 
+type Orden = "original" | "az" | "za" | "precio-asc" | "precio-desc";
+
 export default function CatalogPage({ navigate, onAddToCart, products = [], loading = false }: Props) {
-  // Tomamos los primeros 6 productos de la base de datos para los destacados
-  const featured = products.slice(0, 6);
+  const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<Orden>("original");
+
+  const texto = busqueda.trim().toLowerCase();
+  const filtrados = products.filter(
+    (p) =>
+      texto === "" ||
+      (p.name || "").toLowerCase().includes(texto) ||
+      (p.material || "").toLowerCase().includes(texto) ||
+      (p.tag || "").toLowerCase().includes(texto)
+  );
+
+  const ordenados = [...filtrados].sort((a, b) => {
+    switch (orden) {
+      case "az":
+        return (a.name || "").localeCompare(b.name || "", "es");
+      case "za":
+        return (b.name || "").localeCompare(a.name || "", "es");
+      case "precio-asc":
+        return (a.price ?? 0) - (b.price ?? 0);
+      case "precio-desc":
+        return (b.price ?? 0) - (a.price ?? 0);
+      default:
+        return 0;
+    }
+  });
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
@@ -52,19 +79,78 @@ export default function CatalogPage({ navigate, onAddToCart, products = [], load
         </div>
       </div>
 
-      {/* Featured products */}
-      <div className="mb-3">
-        <div className="font-mono-data text-[#00c8ff] text-xs tracking-widest uppercase mb-2">// Destacados</div>
-        <h2 className="font-display font-700 text-2xl sm:text-3xl text-white section-title">Lo más pedido</h2>
+      {/* Buscador + orden */}
+      <div className="mb-6">
+        <div className="font-mono-data text-[#00c8ff] text-xs tracking-widest uppercase mb-2">// Catálogo completo</div>
+        <h2 className="font-display font-700 text-2xl sm:text-3xl text-white section-title mb-5">Todos los productos</h2>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Input con lupita */}
+          <div className="relative flex-1">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5a7090"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="21" y2="21" />
+            </svg>
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar productos, material..."
+              className="w-full bg-[#0f1520] border border-[rgba(0,200,255,0.15)] rounded pl-10 pr-10 py-2.5 font-mono-data text-sm text-white placeholder-[#5a7090] focus:outline-none focus:border-[#00c8ff] transition-colors"
+            />
+            {busqueda !== "" && (
+              <button
+                onClick={() => setBusqueda("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a7090] hover:text-white transition-colors text-sm"
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Selector de orden */}
+          <select
+            value={orden}
+            onChange={(e) => setOrden(e.target.value as Orden)}
+            className="bg-[#0f1520] border border-[rgba(0,200,255,0.15)] rounded px-4 py-2.5 font-mono-data text-sm text-[#a0b0c8] focus:outline-none focus:border-[#00c8ff] cursor-pointer transition-colors"
+          >
+            <option value="original">Orden original</option>
+            <option value="az">Nombre: A → Z</option>
+            <option value="za">Nombre: Z → A</option>
+            <option value="precio-asc">Precio: menor a mayor</option>
+            <option value="precio-desc">Precio: mayor a menor</option>
+          </select>
+        </div>
+
+        {/* Contador de resultados */}
+        {!loading && products.length > 0 && (
+          <p className="font-mono-data text-[10px] text-[#5a7090] mt-3">
+            {ordenados.length} de {products.length} productos
+            {busqueda !== "" && ` · "${busqueda}"`}
+          </p>
+        )}
       </div>
 
       {loading ? (
         <p className="text-[#00c8ff] font-mono-data text-sm py-10">Cargando productos desde la base de datos...</p>
-      ) : featured.length === 0 ? (
+      ) : products.length === 0 ? (
         <p className="text-[#5a7090] font-mono-data text-sm py-10">No hay productos cargados en la base de datos todavía. ¡Agrega algunos desde la API o Swagger!</p>
+      ) : ordenados.length === 0 ? (
+        <p className="text-[#5a7090] font-mono-data text-sm py-10">
+          No se encontraron productos para "{busqueda}". Probá con otra palabra.
+        </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
-          {featured.map((p) => (
+          {ordenados.map((p) => (
             <ProductCard
               key={p.id}
               product={p}
