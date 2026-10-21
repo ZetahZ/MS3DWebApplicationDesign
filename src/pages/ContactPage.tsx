@@ -184,13 +184,13 @@ export default function ContactPage({ navigate }: Props) {
                   <p className="font-mono-data text-[10px] text-[#5a7090]">{WHATSAPP_DISPLAY}</p>
                 </div>
               </a>
-              <div className="flex items-center gap-3 p-3 rounded bg-[rgba(0,200,255,0.04)] border border-[rgba(0,200,255,0.1)]">
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=zetahz.3d@gmail.com&su=Consulta%20desde%20la%20web" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded bg-[rgba(0,200,255,0.04)] border border-[rgba(0,200,255,0.1)] hover:border-[rgba(0,200,255,0.3)] transition-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00c8ff" strokeWidth="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
                 <div>
                   <p className="font-display font-700 text-sm text-white">Email</p>
-                  <p className="font-mono-data text-[10px] text-[#5a7090]">contacto@ms3d.com.ar</p>
+                  <p className="font-mono-data text-[10px] text-[#5a7090]">zetahz.3d@gmail.com</p>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
 
