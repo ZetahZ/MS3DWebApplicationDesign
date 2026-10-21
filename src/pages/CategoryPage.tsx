@@ -12,11 +12,11 @@ interface Props {
 // Mapeo de los slugs del frontend al ID numérico de tu base de datos PostgreSQL
 const CATEGORY_ID_MAP: Record<CategorySlug, number> = {
   "juguetes": 7,
-  "llaveros": 2, 
-  "macetas": 3,
-  "figuras": 4,
-  "fidgets": 5,
-  "repuestos": 6,
+  "llaveros": 9, 
+  "macetas": 10,
+  "figuras": 11,
+  "fidgets": 12,
+  "repuestos": 13,
 };
 
 export default function CategoryPage({ slug, navigate, onAddToCart }: Props) {
