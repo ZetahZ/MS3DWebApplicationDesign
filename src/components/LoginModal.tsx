@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess?: (userData: any) => void; // Opcional por si quieres guardar sesión en el componente padre
+  onLoginSuccess?: (userData: any) => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
@@ -22,10 +22,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
 
     try {
-      // Definimos la URL y el cuerpo según si está registrando o iniciando sesión
       const endpoint = isRegistering 
-        ? 'http://127.0.0.1:8000/api/v1/auth/register' // Ajusta la ruta de registro de tu backend si es distinta
-        : 'http://127.0.0.1:8000/api/v1/auth/login';    // Ruta de login en tu backend
+        ? 'http://127.0.0.1:8000/api/v1/auth/register' 
+        : 'http://127.0.0.1:8000/api/v1/auth/login';
 
       const bodyData = isRegistering 
         ? { nombre, email, password }
@@ -45,10 +44,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         throw new Error(data.detail || 'Ocurrió un error en la autenticación');
       }
 
-      // Si el login/registro es exitoso:
       console.log(isRegistering ? 'Usuario registrado:' : 'Login exitoso:', data);
       
-      // Guardamos la sesión en el navegador (opcional)
+      // Guardamos la sesión en el navegador
       localStorage.setItem('user', JSON.stringify(data.user || data));
       
       if (onLoginSuccess) {
@@ -60,6 +58,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       setPassword('');
       setNombre('');
       onClose();
+
+      // Recargamos la página para que el Header refleje el nombre del usuario al instante
+      window.location.reload();
+
     } catch (err: any) {
       setError(err.message || 'Error al conectar con el servidor');
     } finally {

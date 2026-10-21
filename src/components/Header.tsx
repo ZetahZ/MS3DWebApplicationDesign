@@ -41,9 +41,19 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string } | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     const handler = (e: MouseEvent) => {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
@@ -52,6 +62,12 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.reload();
+  };
 
   const isCatalogActive = view.page === "catalog" || view.page === "category" || view.page === "product";
   const isModelsActive = view.page === "models";
@@ -77,9 +93,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Logo onClick={() => navigate({ page: "catalog" })} />
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {/* Catálogo with dropdown */}
           <div className="relative" ref={dropRef}>
             <button
               onClick={() => setDropdownOpen((o) => !o)}
@@ -134,15 +148,28 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Botón Iniciar Sesión */}
-          <button
-            onClick={onLoginOpen}
-            className="font-display font-600 text-xs tracking-wider uppercase px-3 py-2 rounded border border-[rgba(0,200,255,0.3)] text-[#00c8ff] hover:bg-[rgba(0,200,255,0.1)] hover:border-[rgba(0,200,255,0.6)] transition-all duration-200"
-          >
-            Iniciar Sesión
-          </button>
+          {user ? (
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded border border-[rgba(0,200,255,0.2)] bg-[rgba(0,200,255,0.05)]">
+              <span className="font-display font-600 text-xs tracking-wider text-[#00c8ff]">
+                Hola, {user.name}
+              </span>
+              <button
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                className="text-[10px] text-[#5a7090] hover:text-red-400 font-mono-data uppercase transition-colors border-l border-[rgba(0,200,255,0.2)] pl-2"
+              >
+                Salir
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLoginOpen}
+              className="font-display font-600 text-xs tracking-wider uppercase px-3 py-2 rounded border border-[rgba(0,200,255,0.3)] text-[#00c8ff] hover:bg-[rgba(0,200,255,0.1)] hover:border-[rgba(0,200,255,0.6)] transition-all duration-200"
+            >
+              Iniciar Sesión
+            </button>
+          )}
 
-          {/* Cart */}
           <button
             onClick={onCartOpen}
             className="relative flex items-center gap-2 px-3 py-2 rounded border border-[rgba(0,200,255,0.2)] hover:border-[rgba(0,200,255,0.5)] transition-all duration-200 group"
@@ -159,7 +186,6 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
             )}
           </button>
 
-          {/* Mobile hamburger */}
           <button
             className="md:hidden p-2 text-[#5a7090] hover:text-[#00c8ff] transition-colors"
             onClick={() => setMobileOpen((o) => !o)}
@@ -173,11 +199,10 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-[rgba(0,200,255,0.1)] bg-[#0f1520] px-4 py-3 flex flex-col gap-1">
           <button
-            onClick={() => { setMobileCatOpen((o) => !o); }}
+            onClick={() => setMobileCatOpen((o) => !o)}
             className="flex items-center justify-between font-display font-600 text-sm tracking-widest uppercase px-4 py-3 rounded text-[#5a7090] hover:text-[#00c8ff] transition-colors"
           >
             Catálogo
@@ -215,13 +240,25 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
               {item.label}
             </button>
           ))}
-          {/* Botón en menú móvil */}
-          <button
-            onClick={() => { onLoginOpen(); setMobileOpen(false); }}
-            className="font-display font-600 text-sm tracking-widest uppercase px-4 py-3 rounded text-left text-[#00c8ff] hover:bg-[rgba(0,200,255,0.08)] transition-colors mt-2 border-t border-[rgba(0,200,255,0.1)]"
-          >
-            Iniciar Sesión
-          </button>
+
+          {user ? (
+            <div className="flex items-center justify-between px-4 py-3 mt-2 border-t border-[rgba(0,200,255,0.1)]">
+              <span className="font-display font-600 text-sm text-[#00c8ff]">Hola, {user.name}</span>
+              <button
+                onClick={() => { handleLogout(); setMobileOpen(false); }}
+                className="font-display text-xs uppercase text-red-400 hover:underline"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { onLoginOpen(); setMobileOpen(false); }}
+              className="font-display font-600 text-sm tracking-widest uppercase px-4 py-3 rounded text-left text-[#00c8ff] hover:bg-[rgba(0,200,255,0.08)] transition-colors mt-2 border-t border-[rgba(0,200,255,0.1)]"
+            >
+              Iniciar Sesión
+            </button>
+          )}
         </div>
       )}
     </header>
