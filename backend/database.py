@@ -3,7 +3,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # URL de conexión remota a Supabase (reemplaza TU_CONTRASEÑA por la clave de tu base de datos)
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:dillanesgay6363@db.kumddrxatpazhdqtqjwt.supabase.co:5432/postgres"
+import os
+
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres.kumddrxatpazhdqtqjwt:dillanesgay6363@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
