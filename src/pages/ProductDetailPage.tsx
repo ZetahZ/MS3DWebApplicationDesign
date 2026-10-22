@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { View, Product, CartItem, FilamentColor } from "../types";
 import { PRODUCTS } from "../data";
 import { CATEGORIES } from "../types";
+import { whatsappUrl } from "../config";
 
 interface Props {
   productId: number;
@@ -198,7 +199,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
           <button
             onClick={() => {
               const msg = `Hola M's3D! Me interesa: *${product.name}* — Color: ${selectedColor.name} — Cantidad: ${qty}. ¿Tienen disponibilidad?`;
-              window.open(`https://wa.me/5491100000000?text=${encodeURIComponent(msg)}`, "_blank");
+              window.open(whatsappUrl(msg), "_blank");
             }}
             className="flex items-center gap-2 text-[#25d366] font-mono-data text-xs hover:underline transition-colors"
           >

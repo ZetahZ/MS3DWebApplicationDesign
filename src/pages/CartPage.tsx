@@ -1,4 +1,5 @@
 import type { View, CartItem } from "../types";
+import { whatsappUrl } from "../config";
 
 interface Props {
   items: CartItem[];
@@ -112,7 +113,7 @@ export default function CartPage({ items, navigate, onUpdate, onRemove }: Props)
                 onClick={() => {
                   const lines = items.map((i) => `• ${i.name} x${i.qty} — $${(i.price * i.qty).toLocaleString("es-AR")}`).join("\n");
                   const msg = `Hola M's3D! Quiero hacer un pedido:\n\n${lines}\n\n*Total: $${total.toLocaleString("es-AR")}*`;
-                  window.open(`https://wa.me/5491100000000?text=${encodeURIComponent(msg)}`, "_blank");
+                  window.open(whatsappUrl(msg), "_blank");
                 }}
                 className="w-full mt-2 py-2.5 rounded border border-[rgba(37,211,102,0.3)] text-[#25d366] hover:bg-[rgba(37,211,102,0.08)] font-display font-700 text-xs tracking-widest uppercase transition-colors flex items-center justify-center gap-2"
               >

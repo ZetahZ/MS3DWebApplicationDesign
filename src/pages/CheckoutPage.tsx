@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { View, CartItem } from "../types";
+import { whatsappUrl } from "../config";
 
 interface Props {
   items: CartItem[];
@@ -27,7 +28,7 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
     if (payment === "whatsapp") {
       const lines = items.map((i) => `• ${i.name} x${i.qty}`).join("\n");
       const msg = `Nuevo pedido de *${form.name}*\n📦 Productos:\n${lines}\n\n💰 Total: $${total.toLocaleString("es-AR")}\n📍 ${form.address}, ${form.city}\n📱 ${form.phone}\n\nForma de pago: ${payment}`;
-      window.open(`https://wa.me/5491100000000?text=${encodeURIComponent(msg)}`, "_blank");
+      window.open(whatsappUrl(msg), "_blank");
     }
     setSubmitted(true);
     onClearCart();
