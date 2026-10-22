@@ -1,4 +1,5 @@
 import type { View, Order, OrderStatus } from "../types";
+import { whatsappUrl } from "../config";
 
 const STATUS_META: Record<OrderStatus, { label: string; className: string }> = {
   pending: { label: "En cola — Por Imprimir", className: "status-pending" },
@@ -153,7 +154,7 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
             <button
               onClick={() => {
                 const msg = `Hola ${order.client}! Tu pedido *${order.product}* ya está ${order.status === "printing" ? "en impresión 🖨️" : "listo para retirar ✅"}. Avisanos cuando quieras coordinar la entrega.`;
-                window.open(`https://wa.me/5491100000000?text=${encodeURIComponent(msg)}`, "_blank");
+                window.open(whatsappUrl(msg), "_blank");
               }}
               className="w-full py-2 flex items-center gap-2 justify-center rounded border border-[rgba(37,211,102,0.2)] text-[#25d366] hover:bg-[rgba(37,211,102,0.08)] font-mono-data text-xs tracking-wider transition-colors"
             >
