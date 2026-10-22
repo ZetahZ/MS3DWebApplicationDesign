@@ -7,7 +7,7 @@ import os
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:dillanesgay6363@db.kumddrxatpazhdqtqjwt.supabase.co:5432/postgres"
+    "postgresql://postgres.kumddrxatpazhdqtqjwt:dillanesgay6363@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
 )
 
 print("--> CONECTANDO A ESTA BASE DE DATOS:", SQLALCHEMY_DATABASE_URL)

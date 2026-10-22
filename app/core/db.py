@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # Reemplaza con tus credenciales reales de PostgreSQL
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://postgres:dillanesgay6363@db.kumddrxatpazhdqtqjwt.supabase.co:5432/postgres"
+    "postgresql://postgres.kumddrxatpazhdqtqjwt:dillanesgay6363@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
 )
 
 engine = create_engine(DATABASE_URL)
