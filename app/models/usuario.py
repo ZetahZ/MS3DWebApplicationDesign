@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from app.core.db import Base  # o la clase Base que usen en core/db.py
 
 class Usuario(Base):
@@ -8,3 +8,5 @@ class Usuario(Base):
     nombre = Column(String, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
+    verificado = Column(Boolean, default=False)
+    codigo_verificacion = Column(String, nullable=True)
