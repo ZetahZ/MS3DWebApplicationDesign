@@ -66,10 +66,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       }
 
       console.log('Login exitoso:', data);
-      localStorage.setItem('user', JSON.stringify(data.user || data));
+      
+      // Extraemos el ID sin importar si viene en data.id o data.user.id
+      const userObj = data.user || data;
+      const userId = data.id || userObj.id;
+
+      // GUARDADO EN LOCALSTORAGE PARA M'S3D
+      if (userId) {
+        localStorage.setItem('user_id', userId.toString());
+      }
+      localStorage.setItem('user', JSON.stringify(userObj));
 
       if (onLoginSuccess) {
-        onLoginSuccess(data.user || data);
+        onLoginSuccess(userObj);
       }
 
       setEmail('');
@@ -453,4 +462,3 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     </div>
   );
 };
-

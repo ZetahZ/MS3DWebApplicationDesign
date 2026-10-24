@@ -19,8 +19,6 @@ export default function NewOrderPage({ navigate }: Props) {
     estimatedTime: "",
     printer: "Bambu Lab X1C",
     color: "#00c8ff",
-    // Campo temporal de prueba para el ID de usuario (por defecto 1)
-    userId: localStorage.getItem("user_id") || "1",
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -29,8 +27,11 @@ export default function NewOrderPage({ navigate }: Props) {
     e.preventDefault();
     if (!form.client.trim() || !form.product.trim()) return;
 
-    // Combinamos las especificaciones en un solo texto para que coincida con el backend
+    // Combinamos las especificaciones en un solo texto para coincidir con el backend
     const especificacionesCombinadas = `Material: ${form.material} | Impresora: ${form.printer} | Tiempo: ${form.estimatedTime || 'N/A'} | ${form.notes}`;
+
+    // Obtenemos automáticamente el ID del usuario guardado en el login
+    const currentUserId = localStorage.getItem("user_id");
 
     try {
       const res = await fetch("http://localhost:8000/api/v1/encargos/", {
@@ -43,7 +44,7 @@ export default function NewOrderPage({ navigate }: Props) {
           especificaciones: especificacionesCombinadas,
           estado: "por_imprimir",
           progreso: 0,
-          usuario_id: form.userId ? parseInt(form.userId) : null, // Enviamos el ID seleccionado o de prueba
+          usuario_id: currentUserId ? parseInt(currentUserId) : null,
         }),
       });
 
@@ -92,19 +93,6 @@ export default function NewOrderPage({ navigate }: Props) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="bg-[#0f1520] border border-[rgba(168,85,247,0.2)] rounded p-6 space-y-5">
-          {/* Test User ID Input */}
-          <div className="bg-[rgba(168,85,247,0.05)] border border-[rgba(168,85,247,0.2)] rounded p-3 mb-2">
-            <label className="font-mono-data text-[10px] text-[#a855f7] tracking-widest uppercase block mb-1">ID de Usuario Asociado (Prueba)</label>
-            <input 
-              type="number" 
-              min={1} 
-              value={form.userId} 
-              onChange={(e) => setForm({ ...form, userId: e.target.value })} 
-              className={inputClass} 
-              placeholder="Ej: 1" 
-            />
-          </div>
-
           {/* Client & Product */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

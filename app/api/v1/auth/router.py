@@ -114,8 +114,7 @@ def forgot_password(data: ForgotSchema, db: Session = Depends(get_db)):
         db.commit()
         enviar_codigo_reset(user.email, codigo, user.nombre or "")
 
-    # Misma respuesta exista o no el correo: así no se puede averiguar
-    # qué mails están registrados probando.
+    # Misma respuesta exista o no el correo para evitar mapeo de emails
     return {
         "message": "Si el correo está registrado, te llegó un código para cambiar la contraseña."
     }
@@ -158,8 +157,10 @@ def login_user(credentials: LoginSchema, db: Session = Depends(get_db)):
             detail="Tenés que verificar tu correo primero. Revisá tu casilla: te enviamos un código."
         )
 
+    # Retornamos id tanto en raíz como en user para máxima compatibilidad con el Frontend
     return {
         "message": "Inicio de sesión exitoso",
+        "id": user.id,
         "user": {
             "id": user.id,
             "nombre": user.nombre,

@@ -81,7 +81,27 @@ export default function CreatorPanel({ navigate }: Props) {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/encargos/");
+      // 1. Obtenemos el ID del usuario logueado desde localStorage (directo o parseando el JSON de user)
+      let currentUserId = localStorage.getItem("user_id");
+
+      if (!currentUserId) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            currentUserId = parsed.id || parsed.user?.id || null;
+          } catch (e) {
+            console.error("Error al parsear el objeto de usuario:", e);
+          }
+        }
+      }
+
+      // 2. Si existe un usuario activo, filtramos la consulta enviando usuario_id en la URL
+      const url = currentUserId
+        ? `http://localhost:8000/api/v1/encargos/?usuario_id=${currentUserId}`
+        : "http://localhost:8000/api/v1/encargos/";
+
+      const res = await fetch(url);
       const data = await res.json();
       setOrders(data);
     } catch (err) {
