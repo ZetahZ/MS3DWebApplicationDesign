@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from fastapi.middleware.cors import CORSMiddleware
 import models
+from app.models import encargo
 from database import engine, get_db
 
 # 1. Importar el router de admin desde la carpeta routers

@@ -1,6 +1,5 @@
-import { useState } from "react";
-import type { View, Product, CartItem, FilamentColor } from "../types";
-import { PRODUCTS } from "../data";
+import { useState, useEffect } from "react";
+import type { View, CartItem, FilamentColor } from "../types";
 import { CATEGORIES } from "../types";
 import { whatsappUrl } from "../config";
 
@@ -11,7 +10,47 @@ interface Props {
 }
 
 export default function ProductDetailPage({ productId, navigate, onAddToCart }: Props) {
-  const product = PRODUCTS.find((p) => p.id === productId);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedColor, setSelectedColor] = useState<FilamentColor | null>(null);
+  const [qty, setQty] = useState(1);
+  const [activeImg, setActiveImg] = useState(0);
+  const [added, setAdded] = useState(false);
+
+  // Cargar el producto desde la API de FastAPI
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/productos/${productId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProduct(data);
+          if (data.colors && data.colors.length > 0) {
+            setSelectedColor(data.colors[0]);
+          }
+        } else {
+          setProduct(null);
+        }
+      } catch (err) {
+        console.error("Error al cargar el producto:", err);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
+  }, [productId]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="font-mono-data text-[#5a7090]">Cargando detalle del producto...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -24,14 +63,8 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
     );
   }
 
-  const [selectedColor, setSelectedColor] = useState<FilamentColor>(product.colors[0]);
-  const [qty, setQty] = useState(1);
-  const [activeImg, setActiveImg] = useState(0);
-  const [added, setAdded] = useState(false);
-
   const cat = CATEGORIES.find((c) => c.slug === product.category);
   const images = product.images || [product.image];
-  const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
 
   const handleAdd = () => {
     onAddToCart({
@@ -41,7 +74,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
       qty,
       type: "product",
       image: product.image,
-      selectedColor: selectedColor.name,
+      selectedColor: selectedColor?.name || "Estándar",
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -55,7 +88,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
       qty,
       type: "product",
       image: product.image,
-      selectedColor: selectedColor.name,
+      selectedColor: selectedColor?.name || "Estándar",
     });
     navigate({ page: "checkout" });
   };
@@ -66,9 +99,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
       <div className="flex items-center gap-2 mb-8 font-mono-data text-xs text-[#5a7090] flex-wrap">
         <button onClick={() => navigate({ page: "catalog" })} className="hover:text-[#00c8ff] transition-colors">Catálogo</button>
         <span>/</span>
-        <button onClick={() => navigate({ page: "category", slug: product.category })} className="hover:text-[#00c8ff] transition-colors" style={{ color: cat?.accent }}>
-          {cat?.label}
-        </button>
+        <span style={{ color: cat?.accent }}>{cat?.label || product.category}</span>
         <span>/</span>
         <span className="text-[#a0b0c8]">{product.name}</span>
       </div>
@@ -83,16 +114,18 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f1520]/30 to-transparent" />
-            <span
-              className="absolute top-4 left-4 font-mono-data text-[10px] px-2 py-0.5 rounded"
-              style={{ background: `${product.tagColor}22`, color: product.tagColor, border: `1px solid ${product.tagColor}44` }}
-            >
-              {product.tag}
-            </span>
+            {product.tag && (
+              <span
+                className="absolute top-4 left-4 font-mono-data text-[10px] px-2 py-0.5 rounded"
+                style={{ background: `${product.tagColor || '#00c8ff'}22`, color: product.tagColor || '#00c8ff', border: `1px solid ${product.tagColor || '#00c8ff'}44` }}
+              >
+                {product.tag}
+              </span>
+            )}
           </div>
           {images.length > 1 && (
             <div className="flex gap-2">
-              {images.map((img, i) => (
+              {images.map((img: string, i: number) => (
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
@@ -110,8 +143,8 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
         {/* Info */}
         <div className="space-y-6">
           <div>
-            <div className="font-mono-data text-[10px] tracking-widest uppercase mb-1" style={{ color: cat?.accent }}>
-              {cat?.icon} {cat?.label}
+            <div className="font-mono-data text-[10px] tracking-widest uppercase mb-1" style={{ color: cat?.accent || '#00c8ff' }}>
+              {cat?.icon} {cat?.label || product.category}
             </div>
             <h1 className="font-display font-700 text-3xl sm:text-4xl text-white leading-tight">{product.name}</h1>
             <p className="text-[#5a7090] mt-3 text-sm leading-relaxed">{product.description}</p>
@@ -136,30 +169,32 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
             ].map((spec) => (
               <div key={spec.label} className="bg-[#111928] rounded p-3 border border-[rgba(0,200,255,0.06)]">
                 <div className="font-mono-data text-[9px] text-[#5a7090] tracking-widest uppercase">{spec.label}</div>
-                <div className="font-display font-700 text-sm text-white mt-1">{spec.value}</div>
+                <div className="font-display font-700 text-sm text-white mt-1">{spec.value || "—"}</div>
               </div>
             ))}
           </div>
 
           {/* Color selector */}
-          <div>
-            <div className="font-mono-data text-[10px] text-[#5a7090] tracking-widest uppercase mb-3">
-              Filamento / Color: <span className="text-[#a0b0c8]">{selectedColor.name}</span>
+          {product.colors && product.colors.length > 0 && (
+            <div>
+              <div className="font-mono-data text-[10px] text-[#5a7090] tracking-widest uppercase mb-3">
+                Filamento / Color: <span className="text-[#a0b0c8]">{selectedColor?.name}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {product.colors.map((color: FilamentColor) => (
+                  <button
+                    key={color.name}
+                    title={color.name}
+                    onClick={() => setSelectedColor(color)}
+                    className={`w-8 h-8 rounded-full transition-all duration-150 ${
+                      selectedColor?.name === color.name ? "ring-2 ring-[#00c8ff] ring-offset-2 ring-offset-[#0f1520] scale-110" : "hover:scale-105"
+                    }`}
+                    style={{ background: color.hex, border: "2px solid rgba(255,255,255,0.1)" }}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {product.colors.map((color) => (
-                <button
-                  key={color.name}
-                  title={color.name}
-                  onClick={() => setSelectedColor(color)}
-                  className={`w-8 h-8 rounded-full transition-all duration-150 ${
-                    selectedColor.name === color.name ? "ring-2 ring-[#00c8ff] ring-offset-2 ring-offset-[#0f1520] scale-110" : "hover:scale-105"
-                  }`}
-                  style={{ background: color.hex, border: "2px solid rgba(255,255,255,0.1)" }}
-                />
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Quantity */}
           <div>
@@ -198,7 +233,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
           {/* WhatsApp link */}
           <button
             onClick={() => {
-              const msg = `Hola M's3D! Me interesa: *${product.name}* — Color: ${selectedColor.name} — Cantidad: ${qty}. ¿Tienen disponibilidad?`;
+              const msg = `Hola M's3D! Me interesa: *${product.name}* — Color: ${selectedColor?.name || 'Estándar'} — Cantidad: ${qty}. ¿Tienen disponibilidad?`;
               window.open(whatsappUrl(msg), "_blank");
             }}
             className="flex items-center gap-2 text-[#25d366] font-mono-data text-xs hover:underline transition-colors"
@@ -208,31 +243,6 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
           </button>
         </div>
       </div>
-
-      {/* Related */}
-      {related.length > 0 && (
-        <div className="mt-14 pt-8 border-t border-[rgba(0,200,255,0.08)]">
-          <div className="font-mono-data text-[10px] text-[#5a7090] tracking-widest uppercase mb-2">// También te puede interesar</div>
-          <h3 className="font-display font-700 text-xl text-white mb-6">Más de {cat?.label}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {related.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => navigate({ page: "product", id: p.id })}
-                className="text-left bg-[#0f1520] border border-[rgba(0,200,255,0.08)] rounded overflow-hidden hover:border-[rgba(0,200,255,0.25)] transition-all group"
-              >
-                <div className="h-36 overflow-hidden">
-                  <img src={p.image} alt={p.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-400" />
-                </div>
-                <div className="p-3">
-                  <p className="font-display font-700 text-sm text-white truncate">{p.name}</p>
-                  <p className="font-display font-700 text-base text-[#00c8ff] mt-1">${p.price.toLocaleString("es-AR")}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

@@ -1,5 +1,12 @@
-import type { View, Order, OrderStatus } from "../types";
+import { useState, useEffect } from "react";
+import type { View, OrderStatus } from "../types";
 import { whatsappUrl } from "../config";
+
+const mapDbToUiStatus = (dbStatus: string): OrderStatus => {
+  if (dbStatus === 'en_impresion') return 'printing';
+  if (dbStatus === 'completado') return 'done';
+  return 'pending';
+};
 
 const STATUS_META: Record<OrderStatus, { label: string; className: string }> = {
   pending: { label: "En cola — Por Imprimir", className: "status-pending" },
@@ -9,13 +16,70 @@ const STATUS_META: Record<OrderStatus, { label: string; className: string }> = {
 
 interface Props {
   orderId: number;
-  orders: Order[];
   navigate: (v: View) => void;
-  onAdvance: (id: number) => void;
+  onAdvance?: (id: number) => void;
 }
 
-export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }: Props) {
-  const order = orders.find((o) => o.id === orderId);
+export default function OrderDetailPage({ orderId, navigate }: Props) {
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Consultar encargo por ID a FastAPI
+  const fetchOrder = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/encargos/${orderId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrder(data);
+      } else {
+        setOrder(null);
+      }
+    } catch (err) {
+      console.error("Error al obtener detalle del pedido:", err);
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrder();
+    }
+  }, [orderId]);
+
+  // Avanzar de estado en la BD desde la vista de detalle
+  const handleAdvanceState = async () => {
+    if (!order) return;
+
+    let nextDbStatus = "en_impresion";
+    let nextProgress = 50;
+    if (order.estado === "en_impresion") {
+      nextDbStatus = "completado";
+      nextProgress = 100;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/encargos/${order.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: nextDbStatus, progreso: nextProgress }),
+      });
+      if (res.ok) {
+        fetchOrder();
+      }
+    } catch (err) {
+      console.error("Error al actualizar estado:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="font-mono-data text-[#5a7090]">Cargando ficha técnica...</p>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -28,18 +92,16 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
     );
   }
 
-  const meta = STATUS_META[order.status];
+  const uiStatus = mapDbToUiStatus(order.estado);
+  const meta = STATUS_META[uiStatus];
 
   const statRows = [
     { label: "ID de pedido", value: `#MS3D-${String(order.id).padStart(4, "0")}` },
-    { label: "Cliente", value: order.client },
-    { label: "Pieza / Modelo", value: order.product },
-    { label: "Cantidad", value: `${order.qty} unidad${order.qty > 1 ? "es" : ""}` },
-    { label: "Material", value: order.material || "—" },
-    { label: "Impresora", value: order.printer || "—" },
-    { label: "Tiempo estimado", value: order.estimatedTime || "—" },
-    { label: "Fecha de ingreso", value: order.createdAt },
-    { label: "Notas", value: order.notes || "—" },
+    { label: "Cliente", value: order.cliente_nombre },
+    { label: "Pieza / Modelo", value: order.producto_nombre },
+    { label: "Cantidad", value: `${order.cantidad} unidad${order.cantidad > 1 ? "es" : ""}` },
+    { label: "Material / Color", value: order.especificaciones || "—" },
+    { label: "Fecha de ingreso", value: order.fecha_creacion || "—" },
   ];
 
   return (
@@ -54,8 +116,8 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="font-mono-data text-[#a855f7] text-xs tracking-widest uppercase mb-2">// Ficha técnica</div>
-          <h1 className="font-display font-700 text-3xl text-white">{order.client}</h1>
-          <p className="font-mono-data text-sm text-[#5a7090] mt-1">{order.product}</p>
+          <h1 className="font-display font-700 text-3xl text-white">{order.cliente_nombre}</h1>
+          <p className="font-mono-data text-sm text-[#5a7090] mt-1">{order.producto_nombre}</p>
         </div>
         <span className={`font-mono-data text-xs px-4 py-2 rounded-full ${meta.className}`}>{meta.label}</span>
       </div>
@@ -79,17 +141,17 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
           </div>
 
           {/* Progress bar (only for printing) */}
-          {order.status === "printing" && order.progress !== undefined && (
+          {uiStatus === "printing" && order.progreso !== undefined && (
             <div className="bg-[#0f1520] border border-[rgba(0,200,255,0.15)] rounded p-5">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-display font-700 text-sm text-white">Progreso de Impresión</h3>
-                <span className="font-mono-data text-sm text-[#00c8ff] font-700">{order.progress}%</span>
+                <span className="font-mono-data text-sm text-[#00c8ff] font-700">{order.progreso}%</span>
               </div>
               <div className="h-3 bg-[#111928] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${order.progress}%`,
+                    width: `${order.progreso}%`,
                     background: "linear-gradient(90deg, #00c8ff, #00dc64)",
                     boxShadow: "0 0 10px rgba(0,200,255,0.4)",
                   }}
@@ -97,26 +159,7 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
               </div>
               <div className="flex justify-between mt-2">
                 <span className="font-mono-data text-[9px] text-[#5a7090]">0%</span>
-                <span className="font-mono-data text-[9px] text-[#5a7090]">Tiempo restante: ~{Math.round((100 - order.progress) * 0.1)}h estimadas</span>
                 <span className="font-mono-data text-[9px] text-[#5a7090]">100%</span>
-              </div>
-            </div>
-          )}
-
-          {/* Printer info */}
-          {order.printer && order.printer !== "—" && (
-            <div className="bg-[#0f1520] border border-[rgba(0,200,255,0.08)] rounded p-5">
-              <h3 className="font-display font-700 text-sm text-white mb-3">Impresora asignada</h3>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded bg-[rgba(0,200,255,0.1)] border border-[rgba(0,200,255,0.2)] flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00c8ff" strokeWidth="1.5"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /><line x1="12" y1="12" x2="12" y2="16" /><line x1="10" y1="14" x2="14" y2="14" /></svg>
-                </div>
-                <div>
-                  <p className="font-display font-700 text-base text-white">{order.printer}</p>
-                  <p className="font-mono-data text-[10px] text-[#5a7090]">
-                    {order.status === "printing" ? "● Activa — imprimiendo ahora" : order.status === "done" ? "○ Libre" : "○ En espera de asignación"}
-                  </p>
-                </div>
               </div>
             </div>
           )}
@@ -128,20 +171,20 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
           <div className="bg-[#0f1520] border border-[rgba(168,85,247,0.15)] rounded p-4">
             <h3 className="font-display font-700 text-sm text-white mb-3">Estado actual</h3>
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">{order.status === "pending" ? "⏳" : order.status === "printing" ? "⚙️" : "✅"}</span>
+              <span className="text-2xl">{uiStatus === "pending" ? "⏳" : uiStatus === "printing" ? "⚙️" : "✅"}</span>
               <span className={`font-mono-data text-xs px-3 py-1.5 rounded-full ${meta.className}`}>{meta.label}</span>
             </div>
 
-            {order.status !== "done" && (
+            {uiStatus !== "done" && (
               <button
-                onClick={() => { onAdvance(order.id); navigate({ page: "creator" }); }}
+                onClick={handleAdvanceState}
                 className="w-full py-2.5 rounded font-display font-700 text-xs tracking-widest uppercase transition-all duration-200 bg-[rgba(0,200,255,0.1)] text-[#00c8ff] border border-[rgba(0,200,255,0.3)] hover:bg-[#00c8ff] hover:text-[#080b0f]"
               >
-                {order.status === "pending" ? "→ Iniciar Impresión" : "✓ Marcar Completado"}
+                {uiStatus === "pending" ? "→ Iniciar Impresión" : "✓ Marcar Completado"}
               </button>
             )}
 
-            {order.status === "done" && (
+            {uiStatus === "done" && (
               <div className="w-full py-2.5 rounded text-center font-mono-data text-xs text-[#00dc64] bg-[rgba(0,220,100,0.08)] border border-[rgba(0,220,100,0.2)]">
                 ✓ Listo para entrega
               </div>
@@ -153,7 +196,7 @@ export default function OrderDetailPage({ orderId, orders, navigate, onAdvance }
             <h3 className="font-display font-700 text-sm text-white mb-3">Acciones rápidas</h3>
             <button
               onClick={() => {
-                const msg = `Hola ${order.client}! Tu pedido *${order.product}* ya está ${order.status === "printing" ? "en impresión 🖨️" : "listo para retirar ✅"}. Avisanos cuando quieras coordinar la entrega.`;
+                const msg = `Hola ${order.cliente_nombre}! Tu pedido *${order.producto_nombre}* ya está ${uiStatus === "printing" ? "en impresión 🖨️" : "listo para retirar ✅"}. Avisanos cuando quieras coordinar la entrega.`;
                 window.open(whatsappUrl(msg), "_blank");
               }}
               className="w-full py-2 flex items-center gap-2 justify-center rounded border border-[rgba(37,211,102,0.2)] text-[#25d366] hover:bg-[rgba(37,211,102,0.08)] font-mono-data text-xs tracking-wider transition-colors"

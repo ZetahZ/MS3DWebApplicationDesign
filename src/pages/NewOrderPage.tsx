@@ -1,16 +1,15 @@
 import { useState } from "react";
-import type { View, Order } from "../types";
+import type { View } from "../types";
 
 interface Props {
   navigate: (v: View) => void;
-  onAdd: (order: Omit<Order, "id">) => void;
 }
 
 const PRINTERS = ["Bambu Lab X1C", "Prusa MK4", "Ender 3 Pro", "Creality CR-10 S5", "Bambu Lab P1S"];
 const MATERIALS = ["PLA+", "PLA Silk", "PLA Matte", "PETG", "ABS", "TPU", "PLA Wood", "ASA"];
 const ACCENT_COLORS = ["#00c8ff", "#ff6b2b", "#a855f7", "#00dc64", "#ffb400", "#64b5f6"];
 
-export default function NewOrderPage({ navigate, onAdd }: Props) {
+export default function NewOrderPage({ navigate }: Props) {
   const [form, setForm] = useState({
     client: "",
     product: "",
@@ -20,27 +19,44 @@ export default function NewOrderPage({ navigate, onAdd }: Props) {
     estimatedTime: "",
     printer: "Bambu Lab X1C",
     color: "#00c8ff",
+    // Campo temporal de prueba para el ID de usuario (por defecto 1)
+    userId: localStorage.getItem("user_id") || "1",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.client.trim() || !form.product.trim()) return;
-    onAdd({
-      client: form.client,
-      product: `${form.product} x${form.qty}`,
-      qty: form.qty,
-      status: "pending",
-      createdAt: new Date().toISOString().split("T")[0],
-      color: form.color,
-      notes: form.notes,
-      material: form.material,
-      estimatedTime: form.estimatedTime,
-      printer: form.printer,
-      progress: 0,
-    });
-    setSubmitted(true);
-    setTimeout(() => navigate({ page: "creator" }), 1500);
+
+    // Combinamos las especificaciones en un solo texto para que coincida con el backend
+    const especificacionesCombinadas = `Material: ${form.material} | Impresora: ${form.printer} | Tiempo: ${form.estimatedTime || 'N/A'} | ${form.notes}`;
+
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/encargos/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente_nombre: form.client,
+          producto_nombre: form.product,
+          cantidad: form.qty,
+          especificaciones: especificacionesCombinadas,
+          estado: "por_imprimir",
+          progreso: 0,
+          usuario_id: form.userId ? parseInt(form.userId) : null, // Enviamos el ID seleccionado o de prueba
+        }),
+      });
+
+      if (res.ok) {
+        setSubmitted(true);
+        setTimeout(() => navigate({ page: "creator" }), 1500);
+      } else {
+        setError("Error al registrar el encargo en el servidor.");
+      }
+    } catch (err) {
+      console.error("Error de red:", err);
+      setError("No se pudo conectar con la API de FastAPI.");
+    }
   };
 
   const inputClass = "w-full bg-[#111928] border border-[rgba(0,200,255,0.1)] rounded px-3 py-2.5 text-sm text-white placeholder:text-[#5a7090] focus:outline-none focus:border-[rgba(0,200,255,0.4)] transition-colors font-mono-data";
@@ -60,6 +76,12 @@ export default function NewOrderPage({ navigate, onAdd }: Props) {
         <h1 className="font-display font-700 text-3xl sm:text-4xl text-white section-title">Nuevo Encargo</h1>
       </div>
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 font-mono-data text-xs">
+          {error}
+        </div>
+      )}
+
       {submitted ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-full bg-[rgba(0,220,100,0.15)] border border-[rgba(0,220,100,0.3)] flex items-center justify-center mb-4">
@@ -70,6 +92,19 @@ export default function NewOrderPage({ navigate, onAdd }: Props) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="bg-[#0f1520] border border-[rgba(168,85,247,0.2)] rounded p-6 space-y-5">
+          {/* Test User ID Input */}
+          <div className="bg-[rgba(168,85,247,0.05)] border border-[rgba(168,85,247,0.2)] rounded p-3 mb-2">
+            <label className="font-mono-data text-[10px] text-[#a855f7] tracking-widest uppercase block mb-1">ID de Usuario Asociado (Prueba)</label>
+            <input 
+              type="number" 
+              min={1} 
+              value={form.userId} 
+              onChange={(e) => setForm({ ...form, userId: e.target.value })} 
+              className={inputClass} 
+              placeholder="Ej: 1" 
+            />
+          </div>
+
           {/* Client & Product */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
