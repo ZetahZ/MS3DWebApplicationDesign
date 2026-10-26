@@ -4,11 +4,12 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess?: (userData: any) => void;
+  onNavigate: (view: any) => void;  
 }
 
-type Vista = 'form' | 'verify' | 'forgot' | 'reset';
+type Vista = 'form' | 'verify' | 'forgot' | 'reset' | 'admin-login';
 
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [vista, setVista] = useState<Vista>('form');
   const [codigo, setCodigo] = useState('');
@@ -184,6 +185,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     verify: 'VERIFICAR CORREO',
     forgot: 'RECUPERAR CONTRASEÑA',
     reset: 'CONTRASEÑA NUEVA',
+    'admin-login': 'ACCESO ADMINISTRADOR',
   };
 
   const subtitulos: Record<Vista, string> = {
@@ -193,8 +195,57 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     verify: `Ingresá el código de 6 dígitos que te enviamos a ${email}`,
     forgot: 'Escribí tu correo y te mandamos un código para cambiar la contraseña',
     reset: `Ingresá el código que te enviamos a ${email} y elegí tu contraseña nueva`,
+    'admin-login': 'Introduce tus credenciales de gestión interna',
   };
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
+  setAviso(null);
+  setLoading(true);
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || 'Credenciales de administrador incorrectas');
+    }
+
+    const userObj = data.user || data;
+    const userId = data.id || userObj.id;
+
+    if (userId) {
+      localStorage.setItem('user_id', userId.toString());
+    }
+    localStorage.setItem('user', JSON.stringify(userObj));
+
+    if (onLoginSuccess) {
+      onLoginSuccess(userObj);
+    }
+
+    setEmail('');
+    setPassword('');
+    onClose();
+
+    // Redirige directamente al panel de administración tras loguearse con éxito
+    if (onNavigate) {
+      onNavigate({ page: 'admin' });
+    } else {
+      window.location.reload();
+    }
+
+  } catch (err: any) {
+    setError(err.message || 'Error al conectar con el servidor');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-md rounded-xl border border-cyan-500/30 bg-slate-900 p-8 shadow-2xl shadow-cyan-500/10">
@@ -211,22 +262,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           {titulos[vista]}
         </h2>
         <p className="mb-6 text-xs text-gray-400">
-          {subtitulos[vista]}
+          {subtitulos[vista]}   
         </p>
 
         {/* Mensaje de Error */}
-        {error && (
+        {typeof error === 'string' && error.trim() !== '' ? (
           <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-400">
-            {error}
+           {error}
           </div>
-        )}
+        ) : null}    
 
         {/* Mensaje de Aviso */}
-        {aviso && (
-          <div className="mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs text-emerald-400">
-            {aviso}
-          </div>
-        )}
+        {typeof aviso === 'string' && aviso.trim() !== '' ? (
+         <div className="mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs text-emerald-400">
+          {aviso}
+         </div>
+        ) : null}
 
         {/* Paso: código de verificación de registro */}
         {vista === 'verify' && (
@@ -301,6 +352,58 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                 className="text-cyan-400 hover:underline font-semibold"
               >
                 Volver a iniciar sesión
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Paso: Login de Administrador */}
+        {vista === 'admin-login' && (
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-300">
+                Correo de Administrador
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@ms3d.com"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-300">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-cyan-500 py-3 text-sm font-semibold text-slate-950 transition-all hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/25 active:scale-[0.98] disabled:opacity-50"
+            >
+              {loading ? 'Verificando...' : 'Entrar al Panel Admin'}
+            </button>
+
+            <div className="text-center text-xs text-gray-400">
+              ¿No eres administrador?{' '}
+              <button
+                type="button"
+                onClick={() => volverALogin()}
+                className="text-cyan-400 hover:underline font-semibold"
+              >
+                Volver al login normal
               </button>
             </div>
           </form>
@@ -430,7 +533,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           </form>
         )}
 
-        {/* Toggle para alternar entre Login y Registro */}
+       {/* Toggle para alternar entre Login y Registro */}
         {vista === 'form' && (
           <div className="mt-6 text-center text-xs text-gray-400">
             {isRegistering ? (
@@ -445,20 +548,34 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                 </button>
               </p>
             ) : (
-              <p>
-                ¿No tienes una cuenta?{' '}
+              <div className="flex items-center justify-center gap-2">
+                <p>
+                  ¿No tienes una cuenta?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegistering(true); setError(null); setAviso(null); }}
+                    className="text-cyan-400 hover:underline font-semibold"
+                  >
+                    Regístrate gratis
+                  </button>
+                </p>
+                <span className="text-slate-600">|</span>
                 <button
-                  type="button"
-                  onClick={() => { setIsRegistering(true); setError(null); setAviso(null); }}
-                  className="text-cyan-400 hover:underline font-semibold"
+                 type="button"
+                 onClick={() => {
+                  setVista('admin-login');
+                  setError(null);
+                  setAviso(null);
+                 }}
+                 className="text-cyan-400 hover:underline font-semibold"
                 >
-                  Regístrate gratis
+                 Administrador
                 </button>
-              </p>
+              </div>
             )}
           </div>
         )}
       </div>
     </div>
-  );
+  );  
 };

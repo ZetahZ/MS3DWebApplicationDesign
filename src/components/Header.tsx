@@ -41,7 +41,10 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role?: string; isAdmin?: boolean } | null>(null);
+  
+  // Paso 2: Variable que valida si el usuario actual es administrador
+  const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,6 +63,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
       }
     };
     document.addEventListener("mousedown", handler);
+    const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
@@ -146,7 +150,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
           {navBtn(isCreatorActive, "Panel Creador", () => navigate({ page: "creator" }))}
           {navBtn(isAboutActive, "Nosotros", () => navigate({ page: "about" }))}
           {navBtn(isContactActive, "Contacto", () => navigate({ page: "contact" }))}
-          {navBtn(isAdminActive, "Admin", () => navigate({ page: "admin" }))}
+          {isAdmin && navBtn(isAdminActive, "Admin", () => navigate({ page: "admin" }))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -233,7 +237,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
             { label: "Panel Creador", v: { page: "creator" } as View },
             { label: "Nosotros", v: { page: "about" } as View },
             { label: "Contacto", v: { page: "contact" } as View },
-            { label: "Admin", v: { page: "admin" } as View },
+            ...(isAdmin ? [{ label: "Admin", v: { page: "admin" } as View }] : []),
           ].map((item) => (
             <button
               key={item.label}

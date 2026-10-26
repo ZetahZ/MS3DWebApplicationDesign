@@ -169,7 +169,7 @@ export default function App() {
           <ContactPage navigate={navigate} />
         )}
         {view.page === "admin" && (
-          <AdminDashboard />
+          localStorage.getItem("user") ? <AdminDashboard /> : <div className="p-8 text-center text-red-400">Acceso denegado. Inicia sesión como administrador.</div>
         )}
       
       </main>
@@ -211,6 +211,7 @@ export default function App() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
+        onNavigate={setView} 
       />
 
       {/* Botón flotante de WhatsApp — visible en todas las páginas */}
