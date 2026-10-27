@@ -16,3 +16,4 @@ class Usuario(Base):
     nombre = Column(String, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
+    is_admin = Column(Integer, default=0)
