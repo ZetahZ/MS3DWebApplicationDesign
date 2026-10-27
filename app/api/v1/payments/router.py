@@ -8,7 +8,7 @@ router = APIRouter(prefix="/payments", tags=["Pagos"])
 
 # Coloca aquí tu Access Token de prueba de Mercado Pago (ej: TEST-...)
 # O asegúrate de tenerlo configurado en tus variables de entorno
-ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "TU_ACCESS_TOKEN_DE_MERCADOPAGO_AQUI")
+ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-1992342808143869-102622-8b66737d79333102e704b6e097d73d15-3796774408")
 SDK = mercadopago.SDK(ACCESS_TOKEN)
 
 class ItemSchema(BaseModel):
@@ -46,13 +46,7 @@ def create_preference(data: CheckoutSchema):
             "items": items,
             "payer": {
                 "email": data.payer_email or "test_user@test.com",
-            },
-            "back_urls": {
-                "success": "http://localhost:5173/?status=success",
-                "failure": "http://localhost:5173/?status=failure",
-                "pending": "http://localhost:5173/?status=pending",
-            },
-            "auto_return": "approved",
+            }
         }
 
         # Creamos la preferencia en Mercado Pago
