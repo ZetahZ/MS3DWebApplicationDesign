@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { View, CartItem, FilamentColor } from "../types";
-import { CATEGORIES } from "../types";
+import { CATEGORIES, CATEGORY_SLUG_BY_ID } from "../types";
 import { whatsappUrl } from "../config";
 
 interface Props {
@@ -24,9 +24,25 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
         const res = await fetch(`http://localhost:8000/api/v1/productos/${productId}`);
         if (res.ok) {
           const data = await res.json();
-          setProduct(data);
-          if (data.colors && data.colors.length > 0) {
-            setSelectedColor(data.colors[0]);
+          // La API devuelve los campos en español (nombre, precio...) — los mapeamos
+          // a la estructura que la página espera, igual que hacen App.tsx y CategoryPage
+          const mapped = {
+            ...data,
+            name: data.nombre || data.name,
+            price: data.precio ?? data.price ?? 0,
+            image: data.imagen || data.image || "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=800&h=600&fit=crop&auto=format",
+            category: data.category || CATEGORY_SLUG_BY_ID[data.categoria_id],
+            description: data.descripcion || data.description || "Pieza impresa en 3D a pedido por M's3D.",
+            material: data.material || "PLA",
+            printTime: data.printTime || data.tiempo_impresion || "2h",
+            layer: data.layer || "0.2mm",
+            infill: data.infill || "20%",
+            tag: data.tag || "3D",
+            tagColor: data.tagColor || "#00c8ff",
+          };
+          setProduct(mapped);
+          if (mapped.colors && mapped.colors.length > 0) {
+            setSelectedColor(mapped.colors[0]);
           }
         } else {
           setProduct(null);
