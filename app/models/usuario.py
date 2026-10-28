@@ -10,3 +10,4 @@ class Usuario(Base):
     password = Column(String, nullable=False)
     verificado = Column(Boolean, default=False)
     codigo_verificacion = Column(String, nullable=True)
+    is_admin = Column(Boolean, default=False)

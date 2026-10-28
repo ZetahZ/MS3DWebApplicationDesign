@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { View, CategorySlug, Product } from "../types";
-import { CATEGORIES } from "../types";
+import { CATEGORIES, CATEGORY_ID_BY_SLUG } from "../types";
 import ProductCard from "../components/ProductCard";
 
 interface Props {
@@ -9,15 +9,7 @@ interface Props {
   onAddToCart: (p: Product) => void;
 }
 
-// Mapeo de los slugs del frontend al ID numérico de tu base de datos PostgreSQL
-const CATEGORY_ID_MAP: Record<CategorySlug, number> = {
-  "juguetes": 7,
-  "llaveros": 9, 
-  "macetas": 10,
-  "figuras": 11,
-  "fidgets": 12,
-  "repuestos": 13,
-};
+const CATEGORY_ID_MAP: Record<CategorySlug, number> = CATEGORY_ID_BY_SLUG;
 
 export default function CategoryPage({ slug, navigate, onAddToCart }: Props) {
   const [products, setProducts] = useState<Product[]>([]);

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.schemas.producto import ProductoCreate, ProductoUpdate, ProductoResponse
 from app.repositories.producto_repository import ProductoRepository
+from app.api.v1.admin.router import require_admin
+from app.models.usuario import Usuario
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
@@ -23,18 +25,31 @@ def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
     return producto
 
 @router.post("/", response_model=ProductoResponse, status_code=status.HTTP_201_CREATED)
-def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
+def crear_producto(
+    data: ProductoCreate,
+    db: Session = Depends(get_db),
+    _admin: Usuario = Depends(require_admin),
+):
     return ProductoRepository.create(db, data)
 
 @router.put("/{producto_id}", response_model=ProductoResponse)
-def actualizar_producto(producto_id: int, data: ProductoUpdate, db: Session = Depends(get_db)):
+def actualizar_producto(
+    producto_id: int,
+    data: ProductoUpdate,
+    db: Session = Depends(get_db),
+    _admin: Usuario = Depends(require_admin),
+):
     producto = ProductoRepository.update(db, producto_id, data)
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return producto
 
 @router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+def eliminar_producto(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    _admin: Usuario = Depends(require_admin),
+):
     eliminado = ProductoRepository.delete(db, producto_id)
     if not eliminado:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
