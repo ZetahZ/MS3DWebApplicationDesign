@@ -41,10 +41,10 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; role?: string; isAdmin?: boolean } | null>(null);
+  const [user, setUser] = useState<{ name?: string; nombre?: string; role?: string; isAdmin?: boolean; is_admin?: boolean } | null>(null);
   
   // Paso 2: Variable que valida si el usuario actual es administrador
-  const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
+  const isAdmin = user?.role === 'admin' || user?.isAdmin === true || user?.is_admin === true;
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,7 +63,6 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
       }
     };
     document.addEventListener("mousedown", handler);
-    const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
@@ -157,7 +156,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
           {user ? (
             <div className="flex items-center gap-3 px-3 py-1.5 rounded border border-[rgba(0,200,255,0.2)] bg-[rgba(0,200,255,0.05)]">
               <span className="font-display font-600 text-xs tracking-wider text-[#00c8ff]">
-                Hola, {user.name}
+                Hola, {user.name || user.nombre}
               </span>
               <button
                 onClick={handleLogout}
@@ -250,7 +249,7 @@ export default function Header({ view, navigate, cartCount, onCartOpen, onLoginO
 
           {user ? (
             <div className="flex items-center justify-between px-4 py-3 mt-2 border-t border-[rgba(0,200,255,0.1)]">
-              <span className="font-display font-600 text-sm text-[#00c8ff]">Hola, {user.name}</span>
+              <span className="font-display font-600 text-sm text-[#00c8ff]">Hola, {user.name || user.nombre}</span>
               <button
                 onClick={() => { handleLogout(); setMobileOpen(false); }}
                 className="font-display text-xs uppercase text-red-400 hover:underline"

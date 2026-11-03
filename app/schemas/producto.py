@@ -7,6 +7,7 @@ class ProductoBase(BaseModel):
     stock: int = 0
     activo: bool = True
     categoria_id: int
+    imagen: str | None = None
 
 class ProductoCreate(ProductoBase):
     pass
@@ -17,6 +18,7 @@ class ProductoUpdate(BaseModel):
     stock: int | None = None
     activo: bool | None = None
     categoria_id: int | None = None
+    imagen: str | None = None
 
 class ProductoResponse(ProductoBase):
     id: int

@@ -164,6 +164,7 @@ def login_user(credentials: LoginSchema, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "nombre": user.nombre,
-            "email": user.email
+            "email": user.email,
+            "is_admin": user.is_admin
         }
     }

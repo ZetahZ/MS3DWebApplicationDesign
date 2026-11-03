@@ -97,3 +97,17 @@ export const CATEGORIES: CategoryMeta[] = [
   { slug: "antistress", label: "Anti-estrés y Fidgets", icon: "🌀", accent: "#ffb400", description: "Articulados, giroscopios y juguetes sensoriales" },
   { slug: "repuestos", label: "Repuestos y Piezas Técnicas", icon: "⚙️", accent: "#64b5f6", description: "Ingeniería funcional impresa bajo pedido" },
 ];
+
+// Mapeo entre los slugs del frontend y los IDs de la tabla `categorias` en la base
+export const CATEGORY_ID_BY_SLUG: Record<CategorySlug, number> = {
+  juguetes: 7,
+  llaveros: 9,
+  macetas: 10,
+  figuras: 11,
+  antistress: 12,
+  repuestos: 13,
+};
+
+export const CATEGORY_SLUG_BY_ID: Record<number, CategorySlug> = Object.fromEntries(
+  Object.entries(CATEGORY_ID_BY_SLUG).map(([slug, id]) => [id, slug]),
+) as Record<number, CategorySlug>;

@@ -218,6 +218,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     }
 
     const userObj = data.user || data;
+
+    // Solo deja pasar si la base dice que es admin de verdad
+    if (userObj.is_admin !== true) {
+      throw new Error('Esta cuenta no es administradora.');
+    }
+
     const userId = data.id || userObj.id;
 
     if (userId) {

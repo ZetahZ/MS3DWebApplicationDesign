@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import type { View, CartItem, Order, OrderStatus } from "./types";
-import { INITIAL_ORDERS } from "./data";
+import type { View, CartItem } from "./types";
+import { CATEGORY_SLUG_BY_ID } from "./types";
 import { obtenerProductos } from "./services/productService";
 import AdminDashboard from "./components/AdminDashboard"; 
 
@@ -46,8 +46,6 @@ export default function App() {
   const [view, setView] = useState<View>({ page: "catalog" });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [nextOrderId, setNextOrderId] = useState(100);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   // Estado para los productos que vienen de la Base de Datos (FastAPI)
@@ -67,6 +65,7 @@ export default function App() {
               id: p.id,
               name: p.nombre || p.name,
               price: p.precio ?? p.price ?? 0,
+              category: CATEGORY_SLUG_BY_ID[p.categoria_id],
               image: p.imagen || p.image || "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=600&h=400&fit=crop&auto=format",
               material: p.material || "PLA",
               tag: p.tag || "3D",
@@ -101,22 +100,6 @@ export default function App() {
   const removeItem = (id: number) => setCart((prev) => prev.filter((i) => i.id !== id));
   const clearCart = () => setCart([]);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-
-  const advanceOrder = (id: number) => {
-    setOrders((prev) => prev.map((o) => {
-      if (o.id !== id) return o;
-      const next: Record<OrderStatus, OrderStatus | null> = { pending: "printing", printing: "done", done: null };
-      const nextStatus = next[o.status];
-      return nextStatus ? { ...o, status: nextStatus, progress: nextStatus === "done" ? 100 : o.progress } : o;
-    }));
-  };
-
-  const deleteOrder = (id: number) => setOrders((prev) => prev.filter((o) => o.id !== id));
-
-  const addOrder = (orderData: Omit<Order, "id">) => {
-    setOrders((prev) => [...prev, { id: nextOrderId, ...orderData }]);
-    setNextOrderId((n) => n + 1);
-  };
 
   return (
     <div className="min-h-full grid-bg relative flex flex-col">
@@ -154,13 +137,13 @@ export default function App() {
           <CheckoutPage items={cart} navigate={navigate} onClearCart={clearCart} />
         )}
         {view.page === "creator" && (
-          <CreatorPanel orders={orders} navigate={navigate} onAdvance={advanceOrder} onDelete={deleteOrder} />
+          <CreatorPanel navigate={navigate} />
         )}
         {view.page === "new-order" && (
-          <NewOrderPage navigate={navigate} onAdd={addOrder} />
+          <NewOrderPage navigate={navigate} />
         )}
         {view.page === "order-detail" && (
-          <OrderDetailPage orderId={view.id} orders={orders} navigate={navigate} onAdvance={advanceOrder} />
+          <OrderDetailPage orderId={view.id} navigate={navigate} />
         )}
         {view.page === "about" && (
           <AboutPage navigate={navigate} />
@@ -169,7 +152,9 @@ export default function App() {
           <ContactPage navigate={navigate} />
         )}
         {view.page === "admin" && (
-          localStorage.getItem("user") ? <AdminDashboard /> : <div className="p-8 text-center text-red-400">Acceso denegado. Inicia sesión como administrador.</div>
+          JSON.parse(localStorage.getItem("user") || "null")?.is_admin === true
+            ? <AdminDashboard />
+            : <div className="p-8 text-center text-red-400">Acceso denegado. Inicia sesión como administrador.</div>
         )}
       
       </main>

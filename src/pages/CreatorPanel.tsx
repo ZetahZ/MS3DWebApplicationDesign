@@ -76,7 +76,7 @@ function OrderCard({ order, onAdvance, onDelete, onDetail }: {
 }
 
 export default function CreatorPanel({ navigate }: Props) {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {

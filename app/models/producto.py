@@ -10,3 +10,4 @@ class Producto(Base):
     stock = Column(Integer, default=0)
     activo = Column(Boolean, default=True)
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
+    imagen = Column(String, nullable=True)
