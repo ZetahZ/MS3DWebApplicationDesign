@@ -22,7 +22,7 @@ def get_all_users(db: Session = Depends(get_db)):
     return [
         {
             "id": user.id,
-            "nombre": user.nombre,
+            "nombre": user.nombre,  
             "email": user.email,
             "status": "activo"
         }
@@ -33,3 +33,13 @@ def get_all_users(db: Session = Depends(get_db)):
 @router.get("/content")
 def get_admin_content(db: Session = Depends(get_db)):
     return []
+
+@router.put("/users/{user_id}/make-admin")
+def make_user_admin(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user.is_admin = 1
+    db.commit()
+    return {"mensaje": f"El usuario con ID {user_id} ahora es administrador"}
