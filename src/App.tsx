@@ -101,8 +101,23 @@ export default function App() {
   const clearCart = () => setCart([]);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
+  // Si la vista actual es "admin", mostramos exclusivamente el AdminDashboard en pantalla completa
+  if (view.page === "admin") {
+    const savedUser = localStorage.getItem("user");
+    const currentUser = savedUser ? JSON.parse(savedUser) : null;
+    
+    if (!currentUser?.is_admin) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-100 text-red-500 font-bold text-xl">
+          Acceso denegado. Inicia sesión como administrador.
+        </div>
+      );
+    }
+    return <AdminDashboard />;
+  }
+
   return (
-    <div className="h-screen overflow-hidden grid-bg relative flex flex-col">
+    <div className="min-h-screen grid-bg relative flex flex-col">
       {/* Header conectado con el manejador de Login */}
       <Header 
         view={view} 
@@ -151,12 +166,6 @@ export default function App() {
         {view.page === "contact" && (
           <ContactPage navigate={navigate} />
         )}
-        {view.page === "admin" && (
-          JSON.parse(localStorage.getItem("user") || "null")?.is_admin === true
-            ? <AdminDashboard />
-            : <div className="p-8 text-center text-red-400">Acceso denegado. Inicia sesión como administrador.</div>
-        )}
-      
       </main>
 
       <footer className="border-t border-[rgba(0,200,255,0.06)] mt-10 py-8 px-4">
@@ -201,7 +210,6 @@ export default function App() {
 
       {/* Botón flotante de WhatsApp — visible en todas las páginas */}
       <WhatsAppButton />
-    
     </div>
   );
 }

@@ -126,7 +126,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-gray-100">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-100">
       {/* Barra lateral de navegación */}
       <aside className="w-64 bg-slate-800 text-white p-5 flex flex-col gap-4 h-full overflow-y-auto flex-shrink-0">
         <h2 className="text-xl font-bold mb-6">Panel Admin</h2>
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Contenido principal según la pestaña activa */}
-      <main className="flex-1 p-8 h-full overflow-y-auto text-gray-900">
+      <main className="flex-1 p-8 overflow-y-auto text-gray-900">
         {activeTab === 'metrics' && metrics && (
           <div>
             <h1 className="text-2xl font-bold mb-4">Métricas del Sistema</h1>
