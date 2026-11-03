@@ -62,7 +62,14 @@ export default function AdminDashboard() {
     setArchivo(null);
   };
 
-  const guardarProducto = async () => {
+  const getImageUrl = (path: string) => {
+   if (!path) return '';
+   if (path.startsWith('http')) return path; // Si ya es una URL completa, la deja igual
+   if (path.startsWith('/')) return `${API}${path}`; // Si empieza con /, le pega la API
+   return `${API}/static/productos/${path}`; // Si es solo el nombre del archivo, asume que está ahí
+   };
+  
+   const guardarProducto = async () => {
     const body: any = {
       nombre: form.nombre,
       precio: parseFloat(form.precio),
@@ -119,9 +126,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-full w-full overflow-hidden bg-gray-100">
       {/* Barra lateral de navegación */}
-      <aside className="w-64 bg-slate-800 text-white p-5 flex flex-col gap-4">
+      <aside className="w-64 bg-slate-800 text-white p-5 flex flex-col gap-4 h-full overflow-y-auto flex-shrink-0">
         <h2 className="text-xl font-bold mb-6">Panel Admin</h2>
         <button 
           onClick={() => setActiveTab('metrics')} 
@@ -144,7 +151,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Contenido principal según la pestaña activa */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 h-full overflow-y-auto text-gray-900">
         {activeTab === 'metrics' && metrics && (
           <div>
             <h1 className="text-2xl font-bold mb-4">Métricas del Sistema</h1>
@@ -157,38 +164,40 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'users' && (
-          <div>
-            <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
-            <table className="w-full bg-white rounded shadow">
-              <thead>
-                <tr className="bg-gray-200 text-left">
-                  <th className="p-3">ID</th>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3">Rol</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id} className="border-t">
-                    <td className="p-3">{user.id}</td>
-                    <td className="p-3">{user.nombre}</td>
-                    <td className="p-3">{user.email}</td>
-                    <td className="p-3">{user.status}</td>
-                    <td className="p-3">
-                      {user.is_admin ? (
-                        <span className="font-bold text-slate-700">Admin</span>
-                      ) : (
-                        <button onClick={() => hacerAdmin(user.id)} className="text-blue-600 underline">Hacer admin</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+  <div>
+    <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+    <table className="w-full bg-white rounded shadow">
+      <thead>
+        <tr className="bg-gray-200 text-left text-gray-700">
+          <th className="p-3">ID</th>
+          <th className="p-3">Nombre</th>
+          <th className="p-3">Email</th>
+          <th className="p-3">Estado</th>
+          <th className="p-3">Rol</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map(user => (
+          <tr key={user.id} className="border-t">
+            <td className="p-3">{user.id}</td>
+            <td className="p-3">{user.nombre}</td>
+            <td className="p-3">{user.email}</td>
+            <td className="p-3">{user.status || 'activo'}</td>
+            <td className="p-3">
+              {user.is_admin ? (
+                <span className="font-bold text-slate-700">Admin</span>
+              ) : (
+                <button onClick={() => hacerAdmin(user.id)} className="text-blue-600 underline">
+                  Hacer admin
+                </button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 
         {activeTab === 'content' && (
           <div>
@@ -199,7 +208,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Formulario de alta/edición */}
             {editando !== null && (
               <div className="bg-white p-6 rounded shadow mb-6">
                 <h2 className="text-lg font-bold mb-3">
@@ -276,6 +284,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="bg-gray-200 text-left">
                   <th className="p-3">ID</th>
+                  <th className="p-3">Imagen</th>
                   <th className="p-3">Nombre</th>
                   <th className="p-3">Precio</th>
                   <th className="p-3">Stock</th>
@@ -289,7 +298,15 @@ export default function AdminDashboard() {
                   <tr key={p.id} className="border-t">
                     <td className="p-3">{p.id}</td>
                     <td className="p-3">
-                      {p.imagen ? <img src={p.imagen} alt="" className="h-10 w-10 object-cover rounded" /> : '—'}
+                       {p.imagen ? (
+                        <img 
+                         src={getImageUrl(p.imagen)} 
+                         alt={p.nombre} 
+                         className="h-10 w-10 object-cover rounded" 
+                        />
+                       ) : (
+                         '—'
+                      )}
                     </td>
                     <td className="p-3">{p.nombre}</td>
                     <td className="p-3">${p.precio}</td>

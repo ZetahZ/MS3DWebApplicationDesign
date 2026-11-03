@@ -102,7 +102,7 @@ export default function App() {
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div className="min-h-full grid-bg relative flex flex-col">
+    <div className="h-screen overflow-hidden grid-bg relative flex flex-col">
       {/* Header conectado con el manejador de Login */}
       <Header 
         view={view} 
@@ -112,7 +112,7 @@ export default function App() {
         onLoginOpen={() => setIsLoginOpen(true)}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col min-h-0 relative">
         {view.page === "catalog" && (
           <CatalogPage 
             navigate={navigate} 
