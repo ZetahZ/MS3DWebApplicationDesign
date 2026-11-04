@@ -1,9 +1,14 @@
 import os
 import mercadopago
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import List
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from sqlalchemy.orm import Session
+
+# Importaciones correctas basadas en la estructura de tu proyecto
+from app.core.db import get_db
+from app.models.order import OrderModel
 
 router = APIRouter(prefix="/payments", tags=["Pagos"])
 
@@ -18,7 +23,7 @@ SDK = mercadopago.SDK(ACCESS_TOKEN)
 # ------------------------------------------------------------------
 mail_config = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME", "zetahz03d@gmail.com"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "ojxeorvhodydxvqd"),  # Contraseña de aplicación de 16 dígitos limpia y sin espacios
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "ojxeorvhodydxvqd"),  
     MAIL_FROM=os.getenv("MAIL_FROM", "zetahz03d@gmail.com"),
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
@@ -92,12 +97,15 @@ class FullCheckoutSchema(BaseModel):
     shipping_cost: float = 0.0
 
 # ------------------------------------------------------------------
-# 4. Endpoint Principal de Pago y Envío de Correo
+# 4. Endpoint Principal de Pago, Base de Datos y Correo
 # ------------------------------------------------------------------
 @router.post("/create-preference")
-async def create_preference(data: FullCheckoutSchema, background_tasks: BackgroundTasks):
+async def create_preference(
+    data: FullCheckoutSchema, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     try:
-        # Armamos los ítems para Mercado Pago
         items = [
             {
                 "title": item.title,
@@ -127,7 +135,6 @@ async def create_preference(data: FullCheckoutSchema, background_tasks: Backgrou
             }
         }
 
-        # Creamos la preferencia en Mercado Pago
         preference_response = SDK.preference().create(preference_data)
         print("Respuesta de Mercado Pago:", preference_response)
 
@@ -146,11 +153,26 @@ async def create_preference(data: FullCheckoutSchema, background_tasks: Backgrou
                 detail="No se pudo obtener el link de pago de Mercado Pago."
             )
 
-        # Calculamos el monto total gastado
         total_items = sum(item.unit_price * item.quantity for item in data.items)
         grand_total = total_items + data.shipping_cost
 
-        # Agregamos la tarea de enviar el mail en SEGUNDO PLANO
+        # Guardar en la base de datos (Supabase / PostgreSQL)
+        new_order = OrderModel(
+            full_name=data.full_name,
+            email=data.email,
+            phone=data.phone,
+            address=data.address,
+            city=data.city,
+            province=data.province,
+            total_amount=grand_total,
+            items=[item.dict() for item in data.items],
+            status="pendiente"
+        )
+        db.add(new_order)
+        db.commit()
+        db.refresh(new_order)
+        print(f"Pedido guardado en base de datos con ID: {new_order.id}")
+
         order_summary = {
             "full_name": data.full_name,
             "phone": data.phone,
@@ -163,14 +185,16 @@ async def create_preference(data: FullCheckoutSchema, background_tasks: Backgrou
         background_tasks.add_task(send_order_confirmation_email, data.email, order_summary)
 
         return {
+            "order_id": new_order.id,
             "preference_id": preference.get("id"),
             "init_point": init_point,
-            "message": "Preferencia generada y correo en cola de envío."
+            "message": "Pedido guardado, preferencia generada y correo en cola de envío."
         }
 
     except Exception as e:
-        print(f"Error detallado en pagos: {str(e)}")
+        db.rollback()
+        print(f"Error detallado en pagos y persistencia: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al generar pago en Mercado Pago: {str(e)}"
+            detail=f"Error al procesar el pedido: {str(e)}"
         )
