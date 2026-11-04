@@ -3,12 +3,21 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+from supabase import create_client, Client
 
 from app.core.db import get_db
 from app.models.usuario import Usuario
 from app.models.producto import Producto
 
+from dotenv import load_dotenv
+load_dotenv()  # Esto lee el archivo .env de la raíz
+
 router = APIRouter(prefix="/api/admin", tags=["Admin Dashboard"])
+
+# Inicializar el cliente de Supabase usando las variables de entorno
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def require_admin(
@@ -91,22 +100,36 @@ def make_user_admin(
     return {"mensaje": f"El usuario con ID {user_id} ahora es administrador"}
 
 
-UPLOAD_DIR = "static/productos"
-
-
+# 5. Subida de imágenes a Supabase Storage
 @router.post("/upload-imagen")
-def subir_imagen(
+async def subir_imagen(
     file: UploadFile = File(...),
     _admin: Usuario = Depends(require_admin),
 ):
-    # Guarda la imagen en static/productos/ y devuelve la URL completa
-    # para guardarla en la columna imagen del producto.
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
-        raise HTTPException(status_code=400, detail="Formato de imagen no soportado")
-    nombre = f"{uuid.uuid4().hex}{ext}"
-    ruta = os.path.join(UPLOAD_DIR, nombre)
-    with open(ruta, "wb") as f:
-        f.write(file.file.read())
-    return {"url": f"http://127.0.0.1:8000/static/productos/{nombre}"}
+    try:
+        file_bytes = await file.read()
+        ext = os.path.splitext(file.filename or "")[1].lower()
+        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+            raise HTTPException(status_code=400, detail="Formato de imagen no soportado")
+            
+        nombre = f"{uuid.uuid4().hex}{ext}"
+        file_path = f"productos/{nombre}"
+        
+        # Sube el archivo al bucket público "productos" de Supabase
+        supabase.storage.from_("productos").upload(
+            path=file_path,
+            file=file_bytes,
+            file_options={"content_type": file.content_type}
+        )
+        
+        # Obtiene la URL pública absoluta
+        public_url_res = supabase.storage.from_("productos").get_public_url(file_path)
+        public_url = public_url_res.get("publicUrl") if isinstance(public_url_res, dict) else public_url_res
+
+        return {"url": public_url}
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al subir la imagen a Supabase Storage: {str(e)}"
+        )

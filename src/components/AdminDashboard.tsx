@@ -63,42 +63,51 @@ export default function AdminDashboard() {
   };
 
   const getImageUrl = (path: string) => {
-   if (!path) return '';
-   if (path.startsWith('http')) return path; // Si ya es una URL completa, la deja igual
-   if (path.startsWith('/')) return `${API}${path}`; // Si empieza con /, le pega la API
-   return `${API}/static/productos/${path}`; // Si es solo el nombre del archivo, asume que está ahí
-   };
-  
-   const guardarProducto = async () => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path; // Soporta Supabase y URLs externas
+    if (path.startsWith('/')) return `${API}${path}`;
+    return `${API}/static/productos/${path}`;
+  };
+ 
+  const guardarProducto = async () => {
+    let imagenUrlFinal = form.imagen;
+
+    // Si eligió un archivo nuevo, lo subimos primero a Supabase mediante el backend
+    if (archivo) {
+      const data = new FormData();
+      data.append('file', archivo);
+      try {
+        const res = await axios.post(`${API}/api/admin/upload-imagen`, data, authHeaders);
+        imagenUrlFinal = res.data.url; // Recibe la URL pública de Supabase
+      } catch (err: any) {
+        alert(err.response?.data?.detail || 'No se pudo subir la imagen a la nube');
+        return;
+      }
+    }
+
     const body: any = {
       nombre: form.nombre,
       precio: parseFloat(form.precio),
       stock: parseInt(form.stock),
       categoria_id: Number(form.categoria_id),
       activo: form.activo,
-      imagen: form.imagen || null,
+      imagen: imagenUrlFinal,
     };
+
     if (!body.nombre || isNaN(body.precio) || isNaN(body.stock)) {
       alert('Completá nombre, precio y stock');
       return;
     }
-    // Si eligió un archivo, primero lo subimos y guardamos la URL que devuelve
-    if (archivo) {
-      const data = new FormData();
-      data.append('file', archivo);
-      try {
-        const res = await axios.post(`${API}/api/admin/upload-imagen`, data, authHeaders);
-        body.imagen = res.data.url;
-      } catch (err: any) {
-        alert(err.response?.data?.detail || 'No se pudo subir la imagen');
-        return;
-      }
-    }
+
     const req = editando === 'nuevo'
       ? axios.post(`${API}/api/v1/productos/`, body, authHeaders)
       : axios.put(`${API}/api/v1/productos/${editando}`, body, authHeaders);
-    req.then(() => { setEditando(null); setArchivo(null); cargarProductos(); })
-       .catch(err => alert(err.response?.data?.detail || 'No se pudo guardar el producto'));
+      
+    req.then(() => { 
+      setEditando(null); 
+      setArchivo(null); 
+      cargarProductos(); 
+    }).catch(err => alert(err.response?.data?.detail || 'No se pudo guardar el producto'));
   };
 
   const eliminarProducto = (id: number, nombre: string) => {
@@ -110,7 +119,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!esAdmin) return;
-    // Peticiones al backend de FastAPI
     axios.get(`${API}/api/admin/metrics`, authHeaders).then(res => setMetrics(res.data)).catch(() => {});
     cargarUsuarios();
     cargarProductos();
@@ -164,40 +172,40 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'users' && (
-  <div>
-    <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
-    <table className="w-full bg-white rounded shadow">
-      <thead>
-        <tr className="bg-gray-200 text-left text-gray-700">
-          <th className="p-3">ID</th>
-          <th className="p-3">Nombre</th>
-          <th className="p-3">Email</th>
-          <th className="p-3">Estado</th>
-          <th className="p-3">Rol</th>
-        </tr>
-      </thead>
-      <tbody>
-        {users.map(user => (
-          <tr key={user.id} className="border-t">
-            <td className="p-3">{user.id}</td>
-            <td className="p-3">{user.nombre}</td>
-            <td className="p-3">{user.email}</td>
-            <td className="p-3">{user.status || 'activo'}</td>
-            <td className="p-3">
-              {user.is_admin ? (
-                <span className="font-bold text-slate-700">Admin</span>
-              ) : (
-                <button onClick={() => hacerAdmin(user.id)} className="text-blue-600 underline">
-                  Hacer admin
-                </button>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
+          <div>
+            <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+            <table className="w-full bg-white rounded shadow">
+              <thead>
+                <tr className="bg-gray-200 text-left text-gray-700">
+                  <th className="p-3">ID</th>
+                  <th className="p-3">Nombre</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Estado</th>
+                  <th className="p-3">Rol</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id} className="border-t">
+                    <td className="p-3">{user.id}</td>
+                    <td className="p-3">{user.nombre}</td>
+                    <td className="p-3">{user.email}</td>
+                    <td className="p-3">{user.status || 'activo'}</td>
+                    <td className="p-3">
+                      {user.is_admin ? (
+                        <span className="font-bold text-slate-700">Admin</span>
+                      ) : (
+                        <button onClick={() => hacerAdmin(user.id)} className="text-blue-600 underline">
+                          Hacer admin
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {activeTab === 'content' && (
           <div>
@@ -261,7 +269,7 @@ export default function AdminDashboard() {
                     />
                     {(archivo || form.imagen) && (
                       <img
-                        src={archivo ? URL.createObjectURL(archivo) : form.imagen}
+                        src={archivo ? URL.createObjectURL(archivo) : getImageUrl(form.imagen)}
                         alt="Vista previa"
                         className="mt-2 h-24 object-cover rounded border"
                       />
@@ -300,9 +308,9 @@ export default function AdminDashboard() {
                     <td className="p-3">
                        {p.imagen ? (
                         <img 
-                         src={getImageUrl(p.imagen)} 
-                         alt={p.nombre} 
-                         className="h-10 w-10 object-cover rounded" 
+                          src={getImageUrl(p.imagen)} 
+                          alt={p.nombre} 
+                          className="h-10 w-10 object-cover rounded" 
                         />
                        ) : (
                          '—'
