@@ -30,7 +30,7 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
     const currentUserId = localStorage.getItem("user_id");
 
     try {
-      // 1. Guardar cada producto del carrito como un encargo en el backend (FastAPI)
+      // 1. Guardar primero el encargo o los encargos individuales en el taller (tu backend anterior)
       for (const item of items) {
         const especificaciones = `Envío: ${shipping} | Dirección: ${form.address}, ${form.city}, ${form.province} | Tel: ${form.phone} | Notas: ${form.notes || "N/A"}`;
 
@@ -53,18 +53,23 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
         }
       }
 
-      // 2. Crear la preferencia de pago en Mercado Pago
+      // 2. Enviar los datos completos al endpoint actualizado de pagos para generar Mercado Pago y el Correo
       const resMp = await fetch("http://localhost:8000/api/v1/payments/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          full_name: form.name,
+          phone: form.phone,
+          email: form.email,
+          address: form.address,
+          city: form.city || "Salta",
+          province: form.province || "Salta",
           items: items.map((i) => ({
             title: i.name,
             quantity: i.qty,
             unit_price: i.price,
           })),
           shipping_cost: shippingCost,
-          payer_email: form.email || "cliente@ms3d.com",
         }),
       });
 
@@ -242,7 +247,7 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
                 <div className="w-10 h-10 rounded-full bg-[#009ee3] flex items-center justify-center font-bold text-white text-sm shrink-0">MP</div>
                 <div>
                   <p className="font-display font-700 text-sm text-white">Mercado Pago (Pago Seguro)</p>
-                  <p className="font-mono-data text-[10px] text-[#5a7090]">Al hacer clic en pagar, se generará tu orden en el taller y serás redirigido al portal de pago oficial.</p>
+                  <p className="font-mono-data text-[10px] text-[#5a7090]">Al hacer clic en pagar, se generará tu orden en el taller, se enviará el correo de confirmación y serás redirigido al portal de pago oficial.</p>
                 </div>
               </div>
 
@@ -255,7 +260,7 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
                   disabled={loading}
                   className="flex-1 py-3 rounded bg-[#009ee3] hover:bg-[#0073a8] text-white font-display font-700 text-sm tracking-widest uppercase transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {loading ? "Generando link de pago..." : "Pagar con Mercado Pago ➔"}
+                  {loading ? "Generando link de pago y enviando correo..." : "Pagar con Mercado Pago ➔"}
                 </button>
               </div>
             </div>
