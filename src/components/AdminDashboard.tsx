@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const authHeaders = { headers: { 'X-User-Id': String(currentUser?.id || '') } };
 
   const cargarUsuarios = () => {
-    axios.get(`${API}/api/admin/users`, authHeaders).then(res => setUsers(res.data)).catch(() => {});
+    axios.get(`${API}/api/v1/usuarios/`, authHeaders).then(res => setUsers(res.data)).catch(() => {});
   };
 
   const cargarProductos = () => {
@@ -35,10 +35,26 @@ export default function AdminDashboard() {
     axios.get(`${API}/api/v1/categorias/`).then(res => setCategorias(res.data)).catch(() => {});
   };
 
-  const hacerAdmin = (id: number) => {
-    axios.put(`${API}/api/admin/users/${id}/make-admin`, {}, authHeaders)
+  // --- Acciones de Usuarios ---
+  const cambiarRol = (id: number, isAdminActual: boolean) => {
+    axios.patch(`${API}/api/v1/usuarios/${id}/role`, { is_admin: !isAdminActual }, authHeaders)
       .then(() => cargarUsuarios())
-      .catch(err => alert(err.response?.data?.detail || 'No se pudo hacer admin al usuario'));
+      .catch(err => alert(err.response?.data?.detail || 'No se pudo cambiar el rol'));
+  };
+
+  const cambiarEstado = (id: number, estadoActual: string, activoActual: boolean) => {
+    const nuevoEstado = estadoActual === 'suspendido' ? 'activo' : 'suspendido';
+    const nuevoActivo = !activoActual;
+    axios.patch(`${API}/api/v1/usuarios/${id}/status`, { status: nuevoEstado, is_active: nuevoActivo }, authHeaders)
+      .then(() => cargarUsuarios())
+      .catch(err => alert(err.response?.data?.detail || 'No se pudo actualizar el estado'));
+  };
+
+  const eliminarUsuarioLogico = (id: number, nombre: string) => {
+    if (!confirm(`¿Eliminar lógicamente al usuario "${nombre}"?`)) return;
+    axios.delete(`${API}/api/v1/usuarios/${id}`, authHeaders)
+      .then(() => cargarUsuarios())
+      .catch(err => alert(err.response?.data?.detail || 'No se pudo eliminar el usuario'));
   };
 
   // --- CRUD de productos ---
@@ -64,7 +80,7 @@ export default function AdminDashboard() {
 
   const getImageUrl = (path: string) => {
     if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path; // Soporta Supabase y URLs externas
+    if (path.startsWith('http://') || path.startsWith('https://')) return path; 
     if (path.startsWith('/')) return `${API}${path}`;
     return `${API}/static/productos/${path}`;
   };
@@ -72,13 +88,12 @@ export default function AdminDashboard() {
   const guardarProducto = async () => {
     let imagenUrlFinal = form.imagen;
 
-    // Si eligió un archivo nuevo, lo subimos primero a Supabase mediante el backend
     if (archivo) {
       const data = new FormData();
       data.append('file', archivo);
       try {
         const res = await axios.post(`${API}/api/admin/upload-imagen`, data, authHeaders);
-        imagenUrlFinal = res.data.url; // Recibe la URL pública de Supabase
+        imagenUrlFinal = res.data.url; 
       } catch (err: any) {
         alert(err.response?.data?.detail || 'No se pudo subir la imagen a la nube');
         return;
@@ -182,6 +197,7 @@ export default function AdminDashboard() {
                   <th className="p-3">Email</th>
                   <th className="p-3">Estado</th>
                   <th className="p-3">Rol</th>
+                  <th className="p-3">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,15 +206,37 @@ export default function AdminDashboard() {
                     <td className="p-3">{user.id}</td>
                     <td className="p-3">{user.nombre}</td>
                     <td className="p-3">{user.email}</td>
-                    <td className="p-3">{user.status || 'activo'}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded text-xs ${user.status === 'suspendido' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {user.status || 'activo'}
+                      </span>
+                    </td>
                     <td className="p-3">
                       {user.is_admin ? (
                         <span className="font-bold text-slate-700">Admin</span>
                       ) : (
-                        <button onClick={() => hacerAdmin(user.id)} className="text-blue-600 underline">
-                          Hacer admin
-                        </button>
+                        <span className="text-gray-600">Usuario</span>
                       )}
+                    </td>
+                    <td className="p-3 flex gap-3">
+                      <button 
+                        onClick={() => cambiarRol(user.id, user.is_admin)} 
+                        className="text-blue-600 underline text-sm"
+                      >
+                        {user.is_admin ? 'Quitar Admin' : 'Hacer Admin'}
+                      </button>
+                      <button 
+                        onClick={() => cambiarEstado(user.id, user.status, user.is_active)} 
+                        className="text-amber-600 underline text-sm"
+                      >
+                        {user.status === 'suspendido' ? 'Activar' : 'Suspender'}
+                      </button>
+                      <button 
+                        onClick={() => eliminarUsuarioLogico(user.id, user.nombre || user.email)} 
+                        className="text-red-600 underline text-sm"
+                      >
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -313,7 +351,7 @@ export default function AdminDashboard() {
                           className="h-10 w-10 object-cover rounded" 
                         />
                        ) : (
-                         '—'
+                          '—'
                       )}
                     </td>
                     <td className="p-3">{p.nombre}</td>
