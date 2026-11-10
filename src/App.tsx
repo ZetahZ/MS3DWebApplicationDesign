@@ -52,6 +52,26 @@ export default function App() {
   const [productosDB, setProductosDB] = useState<any[]>([]);
   const [cargandoDB, setCargandoDB] = useState(true);
 
+  // Sincronizar el historial del navegador (Atrás / Adelante)
+  useEffect(() => {
+    // Si la página se carga por primera vez sin estado previo, fijamos el inicio
+    if (!window.history.state) {
+      window.history.replaceState({ page: "catalog" }, "");
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state) {
+        setView(event.state as View);
+      } else {
+        setView({ page: "catalog" });
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   // Cargar productos de la API al iniciar la aplicación y mapearlos correctamente
   useEffect(() => {
     async function cargarDatos() {
@@ -84,6 +104,10 @@ export default function App() {
   }, []);
 
   const navigate = (v: View) => {
+    // Evitar duplicar la entrada en el historial si el usuario vuelve a hacer clic en la misma pestaña
+    if (JSON.stringify(view) !== JSON.stringify(v)) {
+      window.history.pushState(v, "");
+    }
     setView(v);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -205,7 +229,7 @@ export default function App() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onNavigate={setView} 
+        onNavigate={navigate} 
       />
 
       {/* Botón flotante de WhatsApp — visible en todas las páginas */}
