@@ -6,18 +6,16 @@ const API = 'http://127.0.0.1:8000';
 const FORM_VACIO = { nombre: '', precio: '', stock: '', categoria_id: 1, activo: true, imagen: '' };
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'users' | 'content'>('metrics');
+  const [activeTab, setActiveTab] = useState<'metrics' | 'users' | 'content' | 'encargos'>('metrics');
   const [metrics, setMetrics] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
-
-  // Estado para la gestión de productos
   const [productos, setProductos] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [editando, setEditando] = useState<number | 'nuevo' | null>(null);
   const [form, setForm] = useState<any>(FORM_VACIO);
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [encargos, setEncargos] = useState<any[]>([]);
 
-  // Usuario logueado — el backend valida is_admin con el header X-User-Id
   const savedUser = localStorage.getItem('user');
   const currentUser = savedUser ? JSON.parse(savedUser) : null;
   const esAdmin = currentUser?.is_admin === true;
@@ -35,7 +33,49 @@ export default function AdminDashboard() {
     axios.get(`${API}/api/v1/categorias/`).then(res => setCategorias(res.data)).catch(() => {});
   };
 
-  // --- Acciones de Usuarios ---
+  const cargarEncargos = () => {
+    axios.get(`${API}/api/v1/encargos/`, authHeaders).then(res => setEncargos(res.data)).catch(() => {});
+  };
+
+  const cambiarEstadoEncargo = async (e: React.MouseEvent, id: number, estadoActual: string) => {
+    e.preventDefault(); 
+    
+    // Normalizamos el texto: minúsculas y sin espacios raros
+    const estadoParseado = String(estadoActual).toLowerCase().trim().replace(' ', '_');
+    
+    let nuevoEstado = '';
+    let nuevoProgreso = 0;
+
+    if (estadoParseado === 'por_imprimir') {
+      nuevoEstado = 'imprimiendo';
+      nuevoProgreso = 50;
+    } else if (estadoParseado === 'imprimiendo') {
+      nuevoEstado = 'terminado';
+      nuevoProgreso = 100;
+    } else if (estadoParseado === 'terminado') {
+      nuevoEstado = 'entregado';
+      nuevoProgreso = 100;
+    } else {
+      nuevoEstado = 'por_imprimir';
+      nuevoProgreso = 0;
+    }
+
+    console.log(`Actualizando encargo #${id} de '${estadoActual}' a '${nuevoEstado}'...`);
+
+    try {
+      await axios.put(`${API}/api/v1/encargos/${id}`, { 
+        estado: nuevoEstado, 
+        progreso: nuevoProgreso 
+      }, authHeaders);
+      
+      console.log("¡Actualizado con éxito!");
+      cargarEncargos(); // Refresca la tabla automáticamente
+    } catch (err: any) {
+      console.error("Error en la petición PUT:", err);
+      alert("Error al actualizar el estado: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const cambiarRol = (id: number, isAdminActual: boolean) => {
     axios.patch(`${API}/api/v1/usuarios/${id}/role`, { is_admin: !isAdminActual }, authHeaders)
       .then(() => cargarUsuarios())
@@ -56,8 +96,6 @@ export default function AdminDashboard() {
       .then(() => cargarUsuarios())
       .catch(err => alert(err.response?.data?.detail || 'No se pudo eliminar el usuario'));
   };
-
-  // --- CRUD de productos ---
 
   const empezarNuevo = () => {
     setEditando('nuevo');
@@ -84,7 +122,7 @@ export default function AdminDashboard() {
     if (path.startsWith('/')) return `${API}${path}`;
     return `${API}/static/productos/${path}`;
   };
- 
+  
   const guardarProducto = async () => {
     let imagenUrlFinal = form.imagen;
 
@@ -138,136 +176,154 @@ export default function AdminDashboard() {
     cargarUsuarios();
     cargarProductos();
     cargarCategorias();
+    cargarEncargos();
   }, []);
 
   if (!esAdmin) {
     return (
-      <div className="p-8 text-center text-red-400">
+      <div className="h-screen flex items-center justify-center grid-bg bg-[#0b0f19] text-red-500 font-display font-bold text-xl">
         Acceso denegado. Iniciá sesión con una cuenta de administrador.
       </div>
     );
   }
 
+  // Helper para las clases de los botones del sidebar
+  const getTabClass = (tabName: string) => {
+    const baseClass = "p-3 rounded flex items-center gap-3 text-xs font-mono-data tracking-widest uppercase transition-all duration-200 border-l-2";
+    return activeTab === tabName 
+      ? `${baseClass} bg-[rgba(0,200,255,0.1)] text-[#00c8ff] border-[#00c8ff]` 
+      : `${baseClass} text-[#5a7090] border-transparent hover:text-[#00c8ff] hover:bg-[rgba(0,200,255,0.05)]`;
+  };
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gray-100">
+    <div className="flex h-screen w-full overflow-hidden bg-[#0b0f19] text-white grid-bg relative">
       {/* Barra lateral de navegación */}
-      <aside className="w-64 bg-slate-800 text-white p-5 flex flex-col gap-4 h-full overflow-y-auto flex-shrink-0">
-        <h2 className="text-xl font-bold mb-6">Panel Admin</h2>
-        <button 
-          onClick={() => setActiveTab('metrics')} 
-          className={`p-2 rounded text-left ${activeTab === 'metrics' ? 'bg-slate-700' : ''}`}
-        >
-          📊 Métricas y Estadísticas
+      <aside className="w-64 bg-[#0f1520]/95 backdrop-blur-md border-r border-[rgba(0,200,255,0.1)] p-6 flex flex-col gap-2 h-full overflow-y-auto flex-shrink-0 z-10">
+        <h2 className="text-xl font-display font-700 mb-8 text-white flex items-center gap-2">
+          <span className="text-[#00c8ff]">{'//'}</span> Panel Admin
+        </h2>
+        
+        <button onClick={() => setActiveTab('metrics')} className={getTabClass('metrics')}>
+          <span className="text-lg">📊</span> Métricas
         </button>
-        <button 
-          onClick={() => setActiveTab('users')} 
-          className={`p-2 rounded text-left ${activeTab === 'users' ? 'bg-slate-700' : ''}`}
-        >
-          👥 Gestión de Usuarios
+        <button onClick={() => setActiveTab('users')} className={getTabClass('users')}>
+          <span className="text-lg">👥</span> Usuarios
         </button>
-        <button 
-          onClick={() => setActiveTab('content')} 
-          className={`p-2 rounded text-left ${activeTab === 'content' ? 'bg-slate-700' : ''}`}
-        >
-          ⚙️ Control de Contenido
+        <button onClick={() => setActiveTab('content')} className={getTabClass('content')}>
+          <span className="text-lg">⚙️</span> Contenido
+        </button>
+        <button onClick={() => setActiveTab('encargos')} className={getTabClass('encargos')}>
+          <span className="text-lg">📦</span> Pedidos
         </button>
       </aside>
 
       {/* Contenido principal según la pestaña activa */}
-      <main className="flex-1 p-8 overflow-y-auto text-gray-900">
+      <main className="flex-1 p-8 overflow-y-auto z-10">
+        
         {activeTab === 'metrics' && metrics && (
-          <div>
-            <h1 className="text-2xl font-bold mb-4">Métricas del Sistema</h1>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded shadow">Usuarios Totales: {metrics.total_users}</div>
-              <div className="bg-white p-6 rounded shadow">Contenido Total: {metrics.total_content}</div>
-              <div className="bg-white p-6 rounded shadow">Sesiones Activas: {metrics.active_sessions}</div>
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-display font-700 mb-6 flex items-center gap-3">
+              Métricas del Sistema
+            </h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Usuarios Totales</div>
+                <div className="text-4xl font-display text-[#00c8ff] font-bold">{metrics.total_users}</div>
+              </div>
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Contenido Total</div>
+                <div className="text-4xl font-display text-[#00c8ff] font-bold">{metrics.total_content}</div>
+              </div>
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Sesiones Activas</div>
+                <div className="text-4xl font-display text-[#00c8ff] font-bold">{metrics.active_sessions}</div>
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'users' && (
-          <div>
-            <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
-            <table className="w-full bg-white rounded shadow">
-              <thead>
-                <tr className="bg-gray-200 text-left text-gray-700">
-                  <th className="p-3">ID</th>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3">Rol</th>
-                  <th className="p-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id} className="border-t">
-                    <td className="p-3">{user.id}</td>
-                    <td className="p-3">{user.nombre}</td>
-                    <td className="p-3">{user.email}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 rounded text-xs ${user.status === 'suspendido' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        {user.status || 'activo'}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      {user.is_admin ? (
-                        <span className="font-bold text-slate-700">Admin</span>
-                      ) : (
-                        <span className="text-gray-600">Usuario</span>
-                      )}
-                    </td>
-                    <td className="p-3 flex gap-3">
-                      <button 
-                        onClick={() => cambiarRol(user.id, user.is_admin)} 
-                        className="text-blue-600 underline text-sm"
-                      >
-                        {user.is_admin ? 'Quitar Admin' : 'Hacer Admin'}
-                      </button>
-                      <button 
-                        onClick={() => cambiarEstado(user.id, user.status, user.is_active)} 
-                        className="text-amber-600 underline text-sm"
-                      >
-                        {user.status === 'suspendido' ? 'Activar' : 'Suspender'}
-                      </button>
-                      <button 
-                        onClick={() => eliminarUsuarioLogico(user.id, user.nombre || user.email)} 
-                        className="text-red-600 underline text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-display font-700 mb-6">Gestión de Usuarios</h1>
+            <div className="overflow-x-auto rounded border border-[rgba(0,200,255,0.08)] bg-[#0f1520]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#131b2b] text-left text-[#00c8ff] font-mono-data text-[10px] uppercase tracking-widest border-b border-[rgba(0,200,255,0.08)]">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Nombre</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Estado</th>
+                    <th className="p-4">Rol</th>
+                    <th className="p-4">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.map(user => (
+                    <tr key={user.id} className="border-b border-[rgba(0,200,255,0.04)] hover:bg-[rgba(0,200,255,0.02)] transition-colors text-[#a0b0c8]">
+                      <td className="p-4 font-mono-data text-[#5a7090]">#{user.id}</td>
+                      <td className="p-4 text-white">{user.nombre}</td>
+                      <td className="p-4">{user.email}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded text-[10px] font-mono-data tracking-wider uppercase border ${
+                          user.status === 'suspendido' 
+                            ? 'bg-red-900/20 text-red-400 border-red-500/30' 
+                            : 'bg-green-900/20 text-green-400 border-green-500/30'
+                        }`}>
+                          {user.status || 'activo'}
+                        </span>
+                      </td>
+                      <td className="p-4 font-mono-data uppercase text-[10px] tracking-wider">
+                        {user.is_admin ? (
+                          <span className="text-[#00c8ff]">Admin</span>
+                        ) : (
+                          <span className="text-[#5a7090]">Usuario</span>
+                        )}
+                      </td>
+                      <td className="p-4 flex gap-4 text-xs font-mono-data uppercase tracking-wider">
+                        <button onClick={() => cambiarRol(user.id, user.is_admin)} className="text-[#00c8ff] hover:text-white transition-colors">
+                          {user.is_admin ? 'Quitar Admin' : 'Hacer Admin'}
+                        </button>
+                        <button onClick={() => cambiarEstado(user.id, user.status, user.is_active)} className="text-orange-400 hover:text-orange-300 transition-colors">
+                          {user.status === 'suspendido' ? 'Activar' : 'Suspender'}
+                        </button>
+                        <button onClick={() => eliminarUsuarioLogico(user.id, user.nombre || user.email)} className="text-red-500 hover:text-red-400 transition-colors">
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {activeTab === 'content' && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold">Control de Contenido — Productos</h1>
-              <button onClick={empezarNuevo} className="bg-slate-800 text-white px-4 py-2 rounded">
+          <div className="animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-display font-700">Control de Productos</h1>
+              <button 
+                onClick={empezarNuevo} 
+                className="bg-[rgba(0,200,255,0.1)] border border-[#00c8ff] text-[#00c8ff] hover:bg-[#00c8ff] hover:text-black font-mono-data text-xs tracking-widest uppercase px-6 py-2.5 rounded transition-all"
+              >
                 + Nuevo producto
               </button>
             </div>
 
             {editando !== null && (
-              <div className="bg-white p-6 rounded shadow mb-6">
-                <h2 className="text-lg font-bold mb-3">
-                  {editando === 'nuevo' ? 'Nuevo producto' : `Editar producto #${editando}`}
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.2)] mb-8 shadow-[0_0_20px_rgba(0,200,255,0.05)]">
+                <h2 className="text-xl font-display text-[#00c8ff] mb-4">
+                  {editando === 'nuevo' ? 'Crear Nuevo Producto' : `Editando Producto #${editando}`}
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-5">
                   <input
-                    className="border p-2 rounded"
-                    placeholder="Nombre"
+                    className="w-full bg-[#0b0f19] border border-[rgba(0,200,255,0.15)] rounded px-4 py-2.5 text-sm text-white placeholder-[#5a7090] focus:outline-none focus:border-[#00c8ff] transition-colors"
+                    placeholder="Nombre del producto"
                     value={form.nombre}
                     onChange={e => setForm({ ...form, nombre: e.target.value })}
                   />
                   <input
-                    className="border p-2 rounded"
+                    className="w-full bg-[#0b0f19] border border-[rgba(0,200,255,0.15)] rounded px-4 py-2.5 text-sm text-white placeholder-[#5a7090] focus:outline-none focus:border-[#00c8ff] transition-colors"
                     type="number"
                     step="0.01"
                     placeholder="Precio"
@@ -275,14 +331,14 @@ export default function AdminDashboard() {
                     onChange={e => setForm({ ...form, precio: e.target.value })}
                   />
                   <input
-                    className="border p-2 rounded"
+                    className="w-full bg-[#0b0f19] border border-[rgba(0,200,255,0.15)] rounded px-4 py-2.5 text-sm text-white placeholder-[#5a7090] focus:outline-none focus:border-[#00c8ff] transition-colors"
                     type="number"
-                    placeholder="Stock"
+                    placeholder="Stock disponible"
                     value={form.stock}
                     onChange={e => setForm({ ...form, stock: e.target.value })}
                   />
                   <select
-                    className="border p-2 rounded"
+                    className="w-full bg-[#0b0f19] border border-[rgba(0,200,255,0.15)] rounded px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00c8ff] transition-colors"
                     value={form.categoria_id}
                     onChange={e => setForm({ ...form, categoria_id: Number(e.target.value) })}
                   >
@@ -290,83 +346,162 @@ export default function AdminDashboard() {
                       <option key={c.id} value={c.id}>{c.nombre} (#{c.id})</option>
                     ))}
                   </select>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-3 text-[#a0b0c8] text-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={form.activo}
                       onChange={e => setForm({ ...form, activo: e.target.checked })}
+                      className="accent-[#00c8ff] w-4 h-4"
                     />
-                    Activo (visible en la tienda)
+                    Activo (visible en el catálogo)
                   </label>
                   <div className="col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Imagen del producto</label>
+                    <label className="block font-mono-data text-[10px] uppercase tracking-widest text-[#5a7090] mb-2">Imagen del producto</label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={e => setArchivo(e.target.files?.[0] || null)}
+                      className="text-sm text-[#a0b0c8] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-mono-data file:tracking-widest file:uppercase file:bg-[rgba(0,200,255,0.1)] file:text-[#00c8ff] hover:file:bg-[rgba(0,200,255,0.2)] cursor-pointer"
                     />
                     {(archivo || form.imagen) && (
                       <img
                         src={archivo ? URL.createObjectURL(archivo) : getImageUrl(form.imagen)}
                         alt="Vista previa"
-                        className="mt-2 h-24 object-cover rounded border"
+                        className="mt-4 h-32 w-32 object-cover rounded border border-[rgba(0,200,255,0.2)]"
                       />
                     )}
                   </div>
                 </div>
-                <div className="mt-4 flex gap-3">
-                  <button onClick={guardarProducto} className="bg-green-600 text-white px-4 py-2 rounded">
-                    Guardar
+                <div className="mt-8 flex gap-4">
+                  <button onClick={guardarProducto} className="bg-[#00c8ff] text-black font-mono-data text-xs tracking-widest uppercase px-6 py-2.5 rounded hover:bg-white transition-colors">
+                    Guardar Cambios
                   </button>
-                  <button onClick={() => setEditando(null)} className="bg-gray-300 px-4 py-2 rounded">
+                  <button onClick={() => setEditando(null)} className="border border-[#5a7090] text-[#a0b0c8] font-mono-data text-xs tracking-widest uppercase px-6 py-2.5 rounded hover:border-white hover:text-white transition-colors">
                     Cancelar
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Listado de productos */}
-            <table className="w-full bg-white rounded shadow">
-              <thead>
-                <tr className="bg-gray-200 text-left">
-                  <th className="p-3">ID</th>
-                  <th className="p-3">Imagen</th>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Precio</th>
-                  <th className="p-3">Stock</th>
-                  <th className="p-3">Categoría</th>
-                  <th className="p-3">Activo</th>
-                  <th className="p-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productos.map(p => (
-                  <tr key={p.id} className="border-t">
-                    <td className="p-3">{p.id}</td>
-                    <td className="p-3">
-                       {p.imagen ? (
-                        <img 
-                          src={getImageUrl(p.imagen)} 
-                          alt={p.nombre} 
-                          className="h-10 w-10 object-cover rounded" 
-                        />
-                       ) : (
-                          '—'
-                      )}
-                    </td>
-                    <td className="p-3">{p.nombre}</td>
-                    <td className="p-3">${p.precio}</td>
-                    <td className="p-3">{p.stock}</td>
-                    <td className="p-3">{p.categoria?.nombre || `#${p.categoria_id}`}</td>
-                    <td className="p-3">{p.activo ? 'Sí' : 'No'}</td>
-                    <td className="p-3">
-                      <button onClick={() => empezarEdicion(p)} className="text-blue-600 underline mr-3">Editar</button>
-                      <button onClick={() => eliminarProducto(p.id, p.nombre)} className="text-red-600 underline">Eliminar</button>
-                    </td>
+            <div className="overflow-x-auto rounded border border-[rgba(0,200,255,0.08)] bg-[#0f1520]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#131b2b] text-left text-[#00c8ff] font-mono-data text-[10px] uppercase tracking-widest border-b border-[rgba(0,200,255,0.08)]">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Imagen</th>
+                    <th className="p-4">Nombre</th>
+                    <th className="p-4">Precio</th>
+                    <th className="p-4">Stock</th>
+                    <th className="p-4">Categoría</th>
+                    <th className="p-4">Activo</th>
+                    <th className="p-4">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {productos.map(p => (
+                    <tr key={p.id} className="border-b border-[rgba(0,200,255,0.04)] hover:bg-[rgba(0,200,255,0.02)] transition-colors text-[#a0b0c8]">
+                      <td className="p-4 font-mono-data text-[#5a7090]">#{p.id}</td>
+                      <td className="p-4">
+                         {p.imagen ? (
+                          <img 
+                            src={getImageUrl(p.imagen)} 
+                            alt={p.nombre} 
+                            className="h-10 w-10 object-cover rounded border border-[rgba(0,200,255,0.1)]" 
+                          />
+                         ) : (
+                            <span className="text-[#5a7090] font-mono-data">N/A</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-white font-medium">{p.nombre}</td>
+                      <td className="p-4 text-[#00c8ff] font-mono-data">${p.precio}</td>
+                      <td className="p-4">{p.stock}</td>
+                      <td className="p-4 font-mono-data text-xs">{p.categoria?.nombre || `#${p.categoria_id}`}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded text-[10px] font-mono-data uppercase tracking-wider ${p.activo ? 'text-[#00c8ff] bg-[#00c8ff]/10' : 'text-[#5a7090] bg-gray-800/50'}`}>
+                          {p.activo ? 'Visible' : 'Oculto'}
+                        </span>
+                      </td>
+                      <td className="p-4 flex gap-4 text-xs font-mono-data uppercase tracking-wider mt-2">
+                        <button onClick={() => empezarEdicion(p)} className="text-[#00c8ff] hover:text-white transition-colors">Editar</button>
+                        <button onClick={() => eliminarProducto(p.id, p.nombre)} className="text-red-500 hover:text-red-400 transition-colors">Eliminar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'encargos' && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-display font-700 mb-6">Gestión de Pedidos</h1>
+            <div className="overflow-x-auto rounded border border-[rgba(0,200,255,0.08)] bg-[#0f1520]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#131b2b] text-left text-[#00c8ff] font-mono-data text-[10px] uppercase tracking-widest border-b border-[rgba(0,200,255,0.08)]">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Cliente</th>
+                    <th className="p-4">Producto</th>
+                    <th className="p-4 text-center">Cant.</th>
+                    <th className="p-4">Especificaciones</th>
+                    <th className="p-4">Estado</th>
+                    <th className="p-4">Progreso</th>
+                    <th className="p-4">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {encargos.length === 0 ? (
+                    <tr>
+                      <td className="p-8 text-center text-[#5a7090] font-mono-data text-xs tracking-widest uppercase" colSpan={8}>
+                        No hay pedidos en cola.
+                      </td>
+                    </tr>
+                  ) : (
+                    encargos.map((encargo) => (
+                      <tr key={encargo.id} className="border-b border-[rgba(0,200,255,0.04)] hover:bg-[rgba(0,200,255,0.02)] transition-colors text-[#a0b0c8]">
+                        <td className="p-4 font-mono-data text-[#5a7090]">#{encargo.id}</td>
+                        <td className="p-4 text-white">{encargo.cliente_nombre}</td>
+                        <td className="p-4 font-medium text-[#00c8ff]">{encargo.producto_nombre}</td>
+                        <td className="p-4 text-center font-mono-data">{encargo.cantidad}</td>
+                        <td className="p-4 max-w-[200px] truncate text-xs" title={encargo.especificaciones}>
+                          {encargo.especificaciones || '—'}
+                        </td>
+                        <td className="p-4">
+                          <button 
+                            onClick={(e) => cambiarEstadoEncargo(e, encargo.id, encargo.estado)}
+                            title="Hacer clic para avanzar de estado"
+                            className={`px-3 py-1.5 rounded text-[10px] font-mono-data tracking-wider uppercase transition-all flex items-center gap-2 border ${
+                              encargo.estado === 'por_imprimir' ? 'bg-[#131b2b] text-[#5a7090] border-[#5a7090]/30 hover:border-[#00c8ff] hover:text-[#00c8ff]' :
+                              encargo.estado === 'imprimiendo' ? 'bg-[#00c8ff]/10 text-[#00c8ff] border-[#00c8ff]/30 hover:bg-[#00c8ff]/20' :
+                              encargo.estado === 'terminado' ? 'bg-green-900/20 text-green-400 border-green-500/30 hover:bg-green-900/40' :
+                              'bg-orange-900/20 text-orange-400 border-orange-500/30'
+                            }`}
+                          >
+                            {encargo.estado.replace('_', ' ')}
+                            <span className="opacity-60 text-xs">⟳</span>
+                          </button>
+                        </td>
+                        <td className="p-4 w-32">
+                          <div className="flex items-center gap-3">
+                            <div className="w-full bg-[#131b2b] rounded-full h-1.5 border border-[rgba(0,200,255,0.1)] overflow-hidden">
+                              <div 
+                                className="bg-[#00c8ff] h-1.5 rounded-full shadow-[0_0_8px_#00c8ff] transition-all duration-500" 
+                                style={{ width: `${encargo.progreso}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-[10px] font-mono-data text-[#00c8ff] w-8">{encargo.progreso}%</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-[#5a7090] font-mono-data text-[10px] tracking-wider whitespace-nowrap">
+                          {encargo.fecha_creacion}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
