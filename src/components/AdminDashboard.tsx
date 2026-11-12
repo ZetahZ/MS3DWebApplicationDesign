@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-
-const API = 'http://127.0.0.1:8000';
+import { API_BASE_URL } from '../config';
 
 const FORM_VACIO = { nombre: '', precio: '', stock: '', categoria_id: 1, activo: true, imagen: '' };
 
@@ -54,19 +53,19 @@ export default function AdminDashboard() {
   // FUNCIONES DE API
   // -----------------------------------------------------------
   const cargarUsuarios = () => {
-    axios.get(`${API}/api/v1/usuarios/`, authHeaders).then(res => setUsers(res.data)).catch(() => {});
+    axios.get(`${API_BASE_URL}/api/v1/usuarios/`, authHeaders).then(res => setUsers(res.data)).catch(() => {});
   };
 
   const cargarProductos = () => {
-    axios.get(`${API}/api/v1/productos/`).then(res => setProductos(res.data)).catch(() => {});
+    axios.get(`${API_BASE_URL}/api/v1/productos/`).then(res => setProductos(res.data)).catch(() => {});
   };
 
   const cargarCategorias = () => {
-    axios.get(`${API}/api/v1/categorias/`).then(res => setCategorias(res.data)).catch(() => {});
+    axios.get(`${API_BASE_URL}/api/v1/categorias/`).then(res => setCategorias(res.data)).catch(() => {});
   };
 
   const cargarEncargos = () => {
-    axios.get(`${API}/api/v1/encargos/`, authHeaders).then(res => setEncargos(res.data)).catch(() => {});
+    axios.get(`${API_BASE_URL}/api/v1/encargos/`, authHeaders).then(res => setEncargos(res.data)).catch(() => {});
   };
 
   const cambiarEstadoEncargo = async (e: React.MouseEvent, id: number, estadoActual: string) => {
@@ -91,7 +90,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      await axios.put(`${API}/api/v1/encargos/${id}`, { estado: nuevoEstado, progreso: nuevoProgreso }, authHeaders);
+      await axios.put(`${API_BASE_URL}/api/v1/encargos/${id}`, { estado: nuevoEstado, progreso: nuevoProgreso }, authHeaders);
       cargarEncargos();
     } catch (err: any) {
       alert("Error al actualizar el estado: " + (err.response?.data?.detail || err.message));
@@ -99,7 +98,7 @@ export default function AdminDashboard() {
   };
 
   const cambiarRol = (id: number, isAdminActual: boolean) => {
-    axios.patch(`${API}/api/v1/usuarios/${id}/role`, { is_admin: !isAdminActual }, authHeaders)
+    axios.patch(`${API_BASE_URL}/api/v1/usuarios/${id}/role`, { is_admin: !isAdminActual }, authHeaders)
       .then(() => cargarUsuarios())
       .catch(err => alert(err.response?.data?.detail || 'No se pudo cambiar el rol'));
   };
@@ -107,14 +106,14 @@ export default function AdminDashboard() {
   const cambiarEstado = (id: number, estadoActual: string, activoActual: boolean) => {
     const nuevoEstado = estadoActual === 'suspendido' ? 'activo' : 'suspendido';
     const nuevoActivo = !activoActual;
-    axios.patch(`${API}/api/v1/usuarios/${id}/status`, { status: nuevoEstado, is_active: nuevoActivo }, authHeaders)
+    axios.patch(`${API_BASE_URL}/api/v1/usuarios/${id}/status`, { status: nuevoEstado, is_active: nuevoActivo }, authHeaders)
       .then(() => cargarUsuarios())
       .catch(err => alert(err.response?.data?.detail || 'No se pudo actualizar el estado'));
   };
 
   const eliminarUsuarioLogico = (id: number, nombre: string) => {
     if (!confirm(`¿Eliminar lógicamente al usuario "${nombre}"?`)) return;
-    axios.delete(`${API}/api/v1/usuarios/${id}`, authHeaders)
+    axios.delete(`${API_BASE_URL}/api/v1/usuarios/${id}`, authHeaders)
       .then(() => cargarUsuarios())
       .catch(err => alert(err.response?.data?.detail || 'No se pudo eliminar el usuario'));
   };
@@ -141,8 +140,8 @@ export default function AdminDashboard() {
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path; 
-    if (path.startsWith('/')) return `${API}${path}`;
-    return `${API}/static/productos/${path}`;
+    if (path.startsWith('/')) return `${API_BASE_URL}${path}`;
+    return `${API_BASE_URL}/static/productos/${path}`;
   };
   
   const guardarProducto = async () => {
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
       const data = new FormData();
       data.append('file', archivo);
       try {
-        const res = await axios.post(`${API}/api/admin/upload-imagen`, data, authHeaders);
+        const res = await axios.post(`${API_BASE_URL}/api/admin/upload-imagen`, data, authHeaders);
         imagenUrlFinal = res.data.url; 
       } catch (err: any) {
         alert(err.response?.data?.detail || 'No se pudo subir la imagen a la nube');
@@ -175,8 +174,8 @@ export default function AdminDashboard() {
     }
 
     const req = editando === 'nuevo'
-      ? axios.post(`${API}/api/v1/productos/`, body, authHeaders)
-      : axios.put(`${API}/api/v1/productos/${editando}`, body, authHeaders);
+      ? axios.post(`${API_BASE_URL}/api/v1/productos/`, body, authHeaders)
+      : axios.put(`${API_BASE_URL}/api/v1/productos/${editando}`, body, authHeaders);
       
     req.then(() => { 
       setEditando(null); 
@@ -187,14 +186,14 @@ export default function AdminDashboard() {
 
   const eliminarProducto = (id: number, nombre: string) => {
     if (!confirm(`¿Eliminar "${nombre}"?`)) return;
-    axios.delete(`${API}/api/v1/productos/${id}`, authHeaders)
+    axios.delete(`${API_BASE_URL}/api/v1/productos/${id}`, authHeaders)
       .then(() => cargarProductos())
       .catch(err => alert(err.response?.data?.detail || 'No se pudo eliminar el producto'));
   };
 
   useEffect(() => {
     if (!esAdmin) return;
-    axios.get(`${API}/api/admin/metrics`, authHeaders).then(res => setMetrics(res.data)).catch(() => {});
+    axios.get(`${API_BASE_URL}/api/admin/metrics`, authHeaders).then(res => setMetrics(res.data)).catch(() => {});
     cargarUsuarios();
     cargarProductos();
     cargarCategorias();
@@ -243,7 +242,7 @@ export default function AdminDashboard() {
           <div className="animate-fade-in max-w-6xl">
             <h1 className="text-3xl font-display font-700 mb-6">Métricas del Sistema</h1>
             
-            {/* Fila 1: Estadísticas de Sistema (Tus métricas anteriores) */}
+            {/* Fila 1: Estadísticas de Sistema */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
                 <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Usuarios Totales</div>
@@ -259,7 +258,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Fila 2: Estadísticas de Trabajo (Nueva Opción 1) */}
+            {/* Fila 2: Estadísticas de Trabajo */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
                 <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Pedidos en Cola</div>
@@ -275,10 +274,10 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Fila 3: Gráfico y Alertas (Nuevas Opciones 3 y 4) */}
+            {/* Fila 3: Gráfico y Alertas */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Gráfico Visual (Ocupa 2/3) */}
+              {/* Gráfico Visual */}
               <div className="lg:col-span-2 bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)]">
                 <h2 className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-6 flex items-center gap-2">
                   <span className="text-[#00c8ff]">📈</span> Actividad de Pedidos (Últimos días)
@@ -306,7 +305,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Alertas de Bajo Stock (Ocupa 1/3) */}
+              {/* Alertas de Bajo Stock */}
               <div className="bg-[#0f1520] p-6 rounded border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.03)]">
                 <h2 className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-4 flex items-center gap-2">
                   <span className="text-red-500 animate-pulse">⚠️</span> Alertas de Stock
@@ -506,7 +505,7 @@ export default function AdminDashboard() {
                           />
                          ) : (
                             <span className="text-[#5a7090] font-mono-data">N/A</span>
-                        )}
+                         )}
                       </td>
                       <td className="p-4 text-white font-medium">{p.nombre}</td>
                       <td className="p-4 text-[#00c8ff] font-mono-data">${p.precio}</td>
@@ -588,12 +587,10 @@ export default function AdminDashboard() {
                                 style={{ width: `${encargo.progreso}%` }}
                               ></div>
                             </div>
-                            <span className="text-[10px] font-mono-data text-[#00c8ff] w-8">{encargo.progreso}%</span>
+                            <span className="text-[10px] font-mono-data text-[#00c8ff]">{encargo.progreso}%</span>
                           </div>
                         </td>
-                        <td className="p-4 text-[#5a7090] font-mono-data text-[10px] tracking-wider whitespace-nowrap">
-                          {encargo.fecha_creacion}
-                        </td>
+                        <td className="p-4 font-mono-data text-xs text-[#5a7090]">{encargo.fecha_creacion}</td>
                       </tr>
                     ))
                   )}
@@ -602,6 +599,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
       </main>
     </div>
   );

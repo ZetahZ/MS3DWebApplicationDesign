@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { View, CategorySlug, Product } from "../types";
 import { CATEGORIES, CATEGORY_ID_BY_SLUG } from "../types";
 import ProductCard from "../components/ProductCard";
+import { API_BASE_URL } from "../config";
 
 interface Props {
   slug: CategorySlug;
@@ -23,7 +24,7 @@ export default function CategoryPage({ slug, navigate, onAddToCart }: Props) {
       setLoading(true);
       try {
         const categoryId = CATEGORY_ID_MAP[slug] || 1;
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/productos/categoria/${categoryId}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/productos/categoria/${categoryId}`);
         const data = await res.json();
         
         // Mapeamos los datos del backend (español) a la estructura que ProductCard espera (inglés)

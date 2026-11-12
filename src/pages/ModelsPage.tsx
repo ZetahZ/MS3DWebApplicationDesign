@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { View, CartItem } from "../types";
+import { API_BASE_URL } from "../config";
 
 interface Props {
   navigate: (v: View) => void;
@@ -18,7 +19,7 @@ export default function ModelsPage({ navigate, onAddToCart }: Props) {
     const fetchStlModels = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/productos/categoria/${STL_CATEGORY_ID}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/productos/categoria/${STL_CATEGORY_ID}`);
         const data = await res.json();
         
         // Mapeo adaptado exactamente a la estructura que devuelve PostgreSQL
