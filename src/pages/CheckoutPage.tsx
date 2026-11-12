@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { View, CartItem } from "../types";
-import { whatsappUrl } from "../config";
+import { whatsappUrl, API_BASE_URL } from "../config";
 
 interface Props {
   items: CartItem[];
@@ -30,11 +30,11 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
     const currentUserId = localStorage.getItem("user_id");
 
     try {
-      // 1. Guardar primero el encargo o los encargos individuales en el taller (tu backend anterior)
+      // 1. Guardar primero el encargo o los encargos individuales en el taller conectando con Render
       for (const item of items) {
         const especificaciones = `Envío: ${shipping} | Dirección: ${form.address}, ${form.city}, ${form.province} | Tel: ${form.phone} | Notas: ${form.notes || "N/A"}`;
 
-        const resEncargo = await fetch("http://localhost:8000/api/v1/encargos/", {
+        const resEncargo = await fetch(`${API_BASE_URL}/api/v1/encargos/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -53,8 +53,8 @@ export default function CheckoutPage({ items, navigate, onClearCart }: Props) {
         }
       }
 
-      // 2. Enviar los datos completos al endpoint actualizado de pagos para generar Mercado Pago y el Correo
-      const resMp = await fetch("http://localhost:8000/api/v1/payments/create-preference", {
+      // 2. Enviar los datos completos al endpoint de pagos usando API_BASE_URL
+      const resMp = await fetch(`${API_BASE_URL}/api/v1/payments/create-preference`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

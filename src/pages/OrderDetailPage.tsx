@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { View, OrderStatus } from "../types";
-import { whatsappUrl } from "../config";
+import { whatsappUrl, API_BASE_URL } from "../config";
 
 const mapDbToUiStatus = (dbStatus: string): OrderStatus => {
   if (dbStatus === 'en_impresion') return 'printing';
@@ -27,7 +27,7 @@ export default function OrderDetailPage({ orderId, navigate }: Props) {
   // Consultar encargo por ID a FastAPI
   const fetchOrder = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/encargos/${orderId}`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/encargos/${orderId}`);
       if (res.ok) {
         const data = await res.json();
         setOrder(data);
@@ -60,7 +60,7 @@ export default function OrderDetailPage({ orderId, navigate }: Props) {
     }
 
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/encargos/${order.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/encargos/${order.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nextDbStatus, progreso: nextProgress }),

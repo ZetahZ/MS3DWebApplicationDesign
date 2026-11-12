@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { View, CartItem, FilamentColor } from "../types";
 import { CATEGORIES, CATEGORY_SLUG_BY_ID } from "../types";
-import { whatsappUrl } from "../config";
+import { whatsappUrl, API_BASE_URL } from "../config";
 
 interface Props {
   productId: number;
@@ -21,7 +21,7 @@ export default function ProductDetailPage({ productId, navigate, onAddToCart }: 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/productos/${productId}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/productos/${productId}`);
         if (res.ok) {
           const data = await res.json();
           // La API devuelve los campos en español (nombre, precio...) — los mapeamos
