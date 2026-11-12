@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { View } from "../types";
+import { API_BASE_URL } from "../config";
 
 interface Props {
   navigate: (v: View) => void;
@@ -34,7 +35,7 @@ export default function NewOrderPage({ navigate }: Props) {
     const currentUserId = localStorage.getItem("user_id");
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/encargos/", {
+      const res = await fetch(`${API_BASE_URL}/api/v1/encargos/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
