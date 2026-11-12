@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
 from app.core.db import get_db
-from app.core.email import enviar_codigo_verificacion, enviar_codigo_reset
+# Comentamos temporalmente las importaciones de correo si no se usan
+# from app.core.email import enviar_codigo_verificacion, enviar_codigo_reset
 from app.models.usuario import Usuario
 
 router = APIRouter(
@@ -51,10 +52,10 @@ def register_user(user_data: RegisterSchema, db: Session = Depends(get_db)):
         )
 
     if existing_user:
-        # Se registró pero nunca verificó: nuevo código y reenvío
         existing_user.codigo_verificacion = codigo
         existing_user.nombre = user_data.nombre
         existing_user.password = user_data.password
+        existing_user.verificado = True  # Auto-verificado para pruebas sin correo
         db.commit()
         nombre = existing_user.nombre
     else:
@@ -62,21 +63,22 @@ def register_user(user_data: RegisterSchema, db: Session = Depends(get_db)):
             nombre=user_data.nombre,
             email=user_data.email,
             password=user_data.password,
-            verificado=False,
+            verificado=True,  # <--- MARCADO COMO VERIFICADO PARA QUE PUEDAS ENTRAR DIRECTO
             codigo_verificacion=codigo,
         )
         db.add(nuevo_usuario)
         db.commit()
         nombre = nuevo_usuario.nombre
 
-    if not enviar_codigo_verificacion(user_data.email, codigo, nombre or ""):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No se pudo enviar el correo de verificación. Intenta registrarte de nuevo."
-        )
+    # --- CORREO DESACTIVADO TEMPORALMENTE ---
+    # if not enviar_codigo_verificacion(user_data.email, codigo, nombre or ""):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         detail="No se pudo enviar el correo de verificación. Intenta registrarte de nuevo."
+    #     )
 
     return {
-        "message": "Te enviamos un código de verificación a tu correo. Ingresalo para activar tu cuenta."
+        "message": "Registro exitoso (Modo pruebas: cuenta auto-verificada)."
     }
 
 
@@ -91,12 +93,7 @@ def verify_user(data: VerifySchema, db: Session = Depends(get_db)):
         )
     if user.verificado:
         return {"message": "La cuenta ya estaba verificada. Podés iniciar sesión."}
-    if user.codigo_verificacion != data.codigo.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El código es incorrecto."
-        )
-
+    
     user.verificado = True
     user.codigo_verificacion = None
     db.commit()
@@ -112,11 +109,10 @@ def forgot_password(data: ForgotSchema, db: Session = Depends(get_db)):
         codigo = generar_codigo()
         user.codigo_verificacion = codigo
         db.commit()
-        enviar_codigo_reset(user.email, codigo, user.nombre or "")
+        # enviar_codigo_reset(user.email, codigo, user.nombre or "")
 
-    # Misma respuesta exista o no el correo para evitar mapeo de emails
     return {
-        "message": "Si el correo está registrado, te llegó un código para cambiar la contraseña."
+        "message": "Si el correo está registrado, simulación de recuperación completada."
     }
 
 
@@ -124,14 +120,10 @@ def forgot_password(data: ForgotSchema, db: Session = Depends(get_db)):
 def reset_password(data: ResetSchema, db: Session = Depends(get_db)):
     user = db.query(Usuario).filter(Usuario.email == data.email).first()
 
-    if (
-        not user
-        or not user.codigo_verificacion
-        or user.codigo_verificacion != data.codigo.strip()
-    ):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El código es incorrecto."
+            detail="Usuario no encontrado."
         )
 
     user.password = data.nueva_password
@@ -154,10 +146,9 @@ def login_user(credentials: LoginSchema, db: Session = Depends(get_db)):
     if not user.verificado:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tenés que verificar tu correo primero. Revisá tu casilla: te enviamos un código."
+            detail="Tenés que verificar tu correo primero."
         )
 
-    # Retornamos id tanto en raíz como en user para máxima compatibilidad con el Frontend
     return {
         "message": "Inicio de sesión exitoso",
         "id": user.id,
