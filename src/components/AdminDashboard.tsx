@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -21,6 +22,37 @@ export default function AdminDashboard() {
   const esAdmin = currentUser?.is_admin === true;
   const authHeaders = { headers: { 'X-User-Id': String(currentUser?.id || '') } };
 
+  // -----------------------------------------------------------
+  // CÁLCULOS DINÁMICOS PARA LAS NUEVAS MÉTRICAS (1, 3 y 4)
+  // -----------------------------------------------------------
+  
+  // 1. Tarjetas extra (Trabajo y Pedidos)
+  const enCola = encargos.filter(e => e.estado === 'por_imprimir').length;
+  const imprimiendo = encargos.filter(e => e.estado === 'imprimiendo').length;
+  const completados = encargos.filter(e => e.estado === 'terminado' || e.estado === 'entregado').length;
+
+  // 3. Alertas de bajo stock (menor o igual a 3 unidades)
+  const productosBajoStock = productos
+    .filter(p => p.stock <= 3)
+    .sort((a, b) => a.stock - b.stock); // Ordenar de menor a mayor stock
+
+  // 4. Gráfico: Agrupar pedidos por fecha
+  const pedidosPorFecha = encargos.reduce((acc, encargo) => {
+    const fecha = encargo.fecha_creacion.split(' ')[0]; // "2026-11-04" -> se queda con la fecha
+    acc[fecha] = (acc[fecha] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Darle el formato exacto que pide recharts y mostrar solo los últimos 7 días
+  const datosGrafico = Object.keys(pedidosPorFecha).map(fecha => ({
+    name: fecha.slice(-5), // Acorta "2026-11-04" a "11-04"
+    pedidos: pedidosPorFecha[fecha]
+  })).slice(-7);
+
+
+  // -----------------------------------------------------------
+  // FUNCIONES DE API
+  // -----------------------------------------------------------
   const cargarUsuarios = () => {
     axios.get(`${API}/api/v1/usuarios/`, authHeaders).then(res => setUsers(res.data)).catch(() => {});
   };
@@ -39,8 +71,6 @@ export default function AdminDashboard() {
 
   const cambiarEstadoEncargo = async (e: React.MouseEvent, id: number, estadoActual: string) => {
     e.preventDefault(); 
-    
-    // Normalizamos el texto: minúsculas y sin espacios raros
     const estadoParseado = String(estadoActual).toLowerCase().trim().replace(' ', '_');
     
     let nuevoEstado = '';
@@ -60,18 +90,10 @@ export default function AdminDashboard() {
       nuevoProgreso = 0;
     }
 
-    console.log(`Actualizando encargo #${id} de '${estadoActual}' a '${nuevoEstado}'...`);
-
     try {
-      await axios.put(`${API}/api/v1/encargos/${id}`, { 
-        estado: nuevoEstado, 
-        progreso: nuevoProgreso 
-      }, authHeaders);
-      
-      console.log("¡Actualizado con éxito!");
-      cargarEncargos(); // Refresca la tabla automáticamente
+      await axios.put(`${API}/api/v1/encargos/${id}`, { estado: nuevoEstado, progreso: nuevoProgreso }, authHeaders);
+      cargarEncargos();
     } catch (err: any) {
-      console.error("Error en la petición PUT:", err);
       alert("Error al actualizar el estado: " + (err.response?.data?.detail || err.message));
     }
   };
@@ -187,7 +209,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // Helper para las clases de los botones del sidebar
   const getTabClass = (tabName: string) => {
     const baseClass = "p-3 rounded flex items-center gap-3 text-xs font-mono-data tracking-widest uppercase transition-all duration-200 border-l-2";
     return activeTab === tabName 
@@ -197,7 +218,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0b0f19] text-white grid-bg relative">
-      {/* Barra lateral de navegación */}
       <aside className="w-64 bg-[#0f1520]/95 backdrop-blur-md border-r border-[rgba(0,200,255,0.1)] p-6 flex flex-col gap-2 h-full overflow-y-auto flex-shrink-0 z-10">
         <h2 className="text-xl font-display font-700 mb-8 text-white flex items-center gap-2">
           <span className="text-[#00c8ff]">{'//'}</span> Panel Admin
@@ -217,15 +237,14 @@ export default function AdminDashboard() {
         </button>
       </aside>
 
-      {/* Contenido principal según la pestaña activa */}
       <main className="flex-1 p-8 overflow-y-auto z-10">
         
         {activeTab === 'metrics' && metrics && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-display font-700 mb-6 flex items-center gap-3">
-              Métricas del Sistema
-            </h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="animate-fade-in max-w-6xl">
+            <h1 className="text-3xl font-display font-700 mb-6">Métricas del Sistema</h1>
+            
+            {/* Fila 1: Estadísticas de Sistema (Tus métricas anteriores) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
                 <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Usuarios Totales</div>
                 <div className="text-4xl font-display text-[#00c8ff] font-bold">{metrics.total_users}</div>
@@ -239,9 +258,85 @@ export default function AdminDashboard() {
                 <div className="text-4xl font-display text-[#00c8ff] font-bold">{metrics.active_sessions}</div>
               </div>
             </div>
+
+            {/* Fila 2: Estadísticas de Trabajo (Nueva Opción 1) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Pedidos en Cola</div>
+                <div className="text-4xl font-display text-orange-400 font-bold">{enCola}</div>
+              </div>
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Imprimiendo Ahora</div>
+                <div className="text-4xl font-display text-[#00c8ff] font-bold">{imprimiendo}</div>
+              </div>
+              <div className="bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)] hover:border-[rgba(0,200,255,0.3)] transition-colors">
+                <div className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-2">Pedidos Completados</div>
+                <div className="text-4xl font-display text-green-400 font-bold">{completados}</div>
+              </div>
+            </div>
+
+            {/* Fila 3: Gráfico y Alertas (Nuevas Opciones 3 y 4) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Gráfico Visual (Ocupa 2/3) */}
+              <div className="lg:col-span-2 bg-[#0f1520] p-6 rounded border border-[rgba(0,200,255,0.08)] shadow-[0_0_15px_rgba(0,200,255,0.03)]">
+                <h2 className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-6 flex items-center gap-2">
+                  <span className="text-[#00c8ff]">📈</span> Actividad de Pedidos (Últimos días)
+                </h2>
+                <div className="h-64 w-full">
+                  {datosGrafico.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={datosGrafico}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,200,255,0.05)" vertical={false} />
+                        <XAxis dataKey="name" stroke="#5a7090" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#5a7090" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <Tooltip 
+                          cursor={{ fill: 'rgba(0,200,255,0.05)' }}
+                          contentStyle={{ backgroundColor: '#0b0f19', borderColor: 'rgba(0,200,255,0.2)', color: '#00c8ff', fontFamily: 'monospace' }}
+                          itemStyle={{ color: '#00c8ff' }}
+                        />
+                        <Bar dataKey="pedidos" fill="#00c8ff" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[#5a7090] font-mono-data text-xs uppercase tracking-widest">
+                      No hay datos suficientes para graficar
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Alertas de Bajo Stock (Ocupa 1/3) */}
+              <div className="bg-[#0f1520] p-6 rounded border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.03)]">
+                <h2 className="font-mono-data text-[#5a7090] text-xs tracking-widest uppercase mb-4 flex items-center gap-2">
+                  <span className="text-red-500 animate-pulse">⚠️</span> Alertas de Stock
+                </h2>
+                <div className="flex flex-col gap-3 overflow-y-auto h-64 pr-2 custom-scrollbar">
+                  {productosBajoStock.length === 0 ? (
+                    <div className="text-[#a0b0c8] text-xs font-mono-data h-full flex items-center justify-center border border-dashed border-[rgba(0,200,255,0.1)] rounded">
+                      Inventario óptimo
+                    </div>
+                  ) : (
+                    productosBajoStock.map(p => (
+                      <div key={p.id} className="flex justify-between items-center p-3 bg-[#0b0f19] rounded border border-red-500/20">
+                        <div className="flex flex-col">
+                          <span className="text-white text-sm truncate max-w-[120px] font-medium">{p.nombre}</span>
+                          <span className="text-[10px] font-mono-data text-[#5a7090]">ID: #{p.id}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-[10px] font-mono-data font-bold border ${p.stock === 0 ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'bg-orange-900/20 text-orange-400 border-orange-500/30'}`}>
+                          {p.stock} unid.
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
+        {/* --- Pestaña: USUARIOS --- */}
         {activeTab === 'users' && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-display font-700 mb-6">Gestión de Usuarios</h1>
@@ -298,6 +393,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- Pestaña: CONTENIDO (Productos) --- */}
         {activeTab === 'content' && (
           <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-6">
@@ -433,6 +529,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- Pestaña: ENCARGOS (Pedidos) --- */}
         {activeTab === 'encargos' && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-display font-700 mb-6">Gestión de Pedidos</h1>
@@ -469,6 +566,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-4">
                           <button 
+                            type="button"
                             onClick={(e) => cambiarEstadoEncargo(e, encargo.id, encargo.estado)}
                             title="Hacer clic para avanzar de estado"
                             className={`px-3 py-1.5 rounded text-[10px] font-mono-data tracking-wider uppercase transition-all flex items-center gap-2 border ${
