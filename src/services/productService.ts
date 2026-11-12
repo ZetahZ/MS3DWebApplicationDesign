@@ -1,6 +1,8 @@
 // src/services/productService.ts
 
-const API_URL = 'http://127.0.0.1:8000/api/v1/productos';
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/v1/productos`
+  : 'http://127.0.0.1:8000/api/v1/productos';
 
 // Función para traer los productos de la base de datos
 export async function obtenerProductos() {
