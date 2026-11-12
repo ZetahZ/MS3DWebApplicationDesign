@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { View, OrderStatus } from "../types";
+import { API_BASE_URL } from "../config";
 
 const mapDbToUiStatus = (dbStatus: string): OrderStatus => {
   if (dbStatus === 'en_impresion') return 'printing';
@@ -98,8 +99,8 @@ export default function CreatorPanel({ navigate }: Props) {
 
       // 2. Si existe un usuario activo, filtramos la consulta enviando usuario_id en la URL
       const url = currentUserId
-        ? `http://localhost:8000/api/v1/encargos/?usuario_id=${currentUserId}`
-        : "http://localhost:8000/api/v1/encargos/";
+        ? `${API_BASE_URL}/api/v1/encargos/?usuario_id=${currentUserId}`
+        : `${API_BASE_URL}/api/v1/encargos/`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -136,7 +137,7 @@ export default function CreatorPanel({ navigate }: Props) {
     );
 
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/encargos/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/encargos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nextDbStatus, progreso: nextProgress }),
@@ -152,7 +153,7 @@ export default function CreatorPanel({ navigate }: Props) {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/encargos/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/encargos/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
