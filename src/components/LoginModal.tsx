@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -40,8 +41,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
     try {
       const endpoint = isRegistering
-        ? 'http://127.0.0.1:8000/api/v1/auth/register'
-        : 'http://127.0.0.1:8000/api/v1/auth/login';
+        ? `${API_BASE_URL}/api/v1/auth/register`
+        : `${API_BASE_URL}/api/v1/auth/login`;
 
       const bodyData = isRegistering
         ? { nombre, email, password }
@@ -68,11 +69,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
       console.log('Login exitoso:', data);
       
-      // Extraemos el ID sin importar si viene en data.id o data.user.id
       const userObj = data.user || data;
       const userId = data.id || userObj.id;
 
-      // GUARDADO EN LOCALSTORAGE PARA M'S3D
       if (userId) {
         localStorage.setItem('user_id', userId.toString());
       }
@@ -101,7 +100,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/auth/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo: codigo.trim() }),
@@ -129,7 +128,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/auth/forgot', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/forgot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -158,7 +157,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/auth/reset-password', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo: codigo.trim(), nueva_password: nuevaPassword }),
@@ -199,59 +198,58 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  setAviso(null);
-  setLoading(true);
+    e.preventDefault();
+    setError(null);
+    setAviso(null);
+    setLoading(true);
 
-  try {
-    const response = await fetch('http://127.0.0.1:8000/api/v1/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.detail || 'Credenciales de administrador incorrectas');
+      if (!response.ok) {
+        throw new Error(data.detail || 'Credenciales de administrador incorrectas');
+      }
+
+      const userObj = data.user || data;
+
+      if (userObj.is_admin !== true) {
+        throw new Error('Esta cuenta no es administradora.');
+      }
+
+      const userId = data.id || userObj.id;
+
+      if (userId) {
+        localStorage.setItem('user_id', userId.toString());
+      }
+      localStorage.setItem('user', JSON.stringify(userObj));
+
+      if (onLoginSuccess) {
+        onLoginSuccess(userObj);
+      }
+
+      setEmail('');
+      setPassword('');
+      onClose();
+
+      if (onNavigate) {
+        onNavigate({ page: 'admin' });
+      } else {
+        window.location.reload();
+      }
+
+    } catch (err: any) {
+      setError(err.message || 'Error al conectar con el servidor');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const userObj = data.user || data;
-
-    // Solo deja pasar si la base dice que es admin de verdad
-    if (userObj.is_admin !== true) {
-      throw new Error('Esta cuenta no es administradora.');
-    }
-
-    const userId = data.id || userObj.id;
-
-    if (userId) {
-      localStorage.setItem('user_id', userId.toString());
-    }
-    localStorage.setItem('user', JSON.stringify(userObj));
-
-    if (onLoginSuccess) {
-      onLoginSuccess(userObj);
-    }
-
-    setEmail('');
-    setPassword('');
-    onClose();
-
-    // Redirige directamente al panel de administración tras loguearse con éxito
-    if (onNavigate) {
-      onNavigate({ page: 'admin' });
-    } else {
-      window.location.reload();
-    }
-
-  } catch (err: any) {
-    setError(err.message || 'Error al conectar con el servidor');
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-md rounded-xl border border-cyan-500/30 bg-slate-900 p-8 shadow-2xl shadow-cyan-500/10">
@@ -567,15 +565,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                 </p>
                 <span className="text-slate-600">|</span>
                 <button
-                 type="button"
-                 onClick={() => {
-                  setVista('admin-login');
-                  setError(null);
-                  setAviso(null);
-                 }}
-                 className="text-cyan-400 hover:underline font-semibold"
+                   type="button"
+                   onClick={() => {
+                    setVista('admin-login');
+                    setError(null);
+                    setAviso(null);
+                   }}
+                   className="text-cyan-400 hover:underline font-semibold"
                 >
-                 Administrador
+                  Administrador
                 </button>
               </div>
             )}
